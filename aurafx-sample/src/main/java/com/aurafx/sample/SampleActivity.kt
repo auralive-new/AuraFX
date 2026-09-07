@@ -7,7 +7,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.SurfaceHolder
-import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -262,6 +261,40 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
             host.addView(label)
             host.addView(bar)
         }
+        val resetMk = android.widget.Button(this)
+        resetMk.text = "Classic makeup"
+        resetMk.setOnClickListener {
+            target.applyMakeupPreset(com.aurafx.sdk.api.MakeupPreset.Classic)
+            bindBeautySliders(target)
+        }
+        host.addView(resetMk)
+        val bright = android.widget.Button(this)
+        bright.text = "Bright makeup"
+        bright.setOnClickListener {
+            target.applyMakeupPreset(com.aurafx.sdk.api.MakeupPreset.Bright)
+            bindBeautySliders(target)
+        }
+        host.addView(bright)
+        val extra = android.widget.Button(this)
+        extra.text = "Extravagant makeup"
+        extra.setOnClickListener {
+            target.applyMakeupPreset(com.aurafx.sdk.api.MakeupPreset.Extravagant)
+            bindBeautySliders(target)
+        }
+        host.addView(extra)
+        row("Foundation", read = { target.makeupParameters().foundation.intensity }, write = { v -> target.makeup { foundation.enabled = v > 0f; foundation.intensity = v } })
+        row("Concealer", read = { target.makeupParameters().concealer.intensity }, write = { v -> target.makeup { concealer.enabled = v > 0f; concealer.intensity = v } })
+        row("Blush", read = { target.makeupParameters().blush.intensity }, write = { v -> target.makeup { blush.enabled = v > 0f; blush.intensity = v } })
+        row("Contour", read = { target.makeupParameters().contour.intensity }, write = { v -> target.makeup { contour.enabled = v > 0f; contour.intensity = v } })
+        row("Highlight", read = { target.makeupParameters().highlight.intensity }, write = { v -> target.makeup { highlight.enabled = v > 0f; highlight.intensity = v } })
+        row("Eyebrow", read = { target.makeupParameters().eyebrow.intensity }, write = { v -> target.makeup { eyebrow.enabled = v > 0f; eyebrow.intensity = v } })
+        row("Eyeshadow", read = { target.makeupParameters().eyeshadow.intensity }, write = { v -> target.makeup { eyeshadow.enabled = v > 0f; eyeshadow.intensity = v } })
+        row("Eyeliner", read = { target.makeupParameters().eyeliner.intensity }, write = { v -> target.makeup { eyeliner.enabled = v > 0f; eyeliner.intensity = v } })
+        row("Lashes", read = { target.makeupParameters().eyelashes.intensity }, write = { v -> target.makeup { eyelashes.enabled = v > 0f; eyelashes.intensity = v } })
+        row("Lipstick", read = { target.makeupParameters().lipstick.intensity }, write = { v -> target.makeup { lipstick.enabled = v > 0f; lipstick.intensity = v } })
+        row("Lip Liner", read = { target.makeupParameters().lipLiner.intensity }, write = { v -> target.makeup { lipLiner.enabled = v > 0f; lipLiner.intensity = v } })
+        row("Lip Gloss", read = { target.makeupParameters().lipGloss.intensity }, write = { v -> target.makeup { lipGloss.enabled = v > 0f; lipGloss.intensity = v } })
+        row("Lens", read = { target.makeupParameters().lens.intensity }, write = { v -> target.makeup { lens.enabled = v > 0f; lens.intensity = v } })
         row("Fine Smooth", read = { target.beautyParameters().fineSmooth }, write = { v -> target.beauty { fineSmooth = v } })
         row("Skin Smoothness", read = { target.skinParameters().smoothness }, write = { v -> target.skin { smoothness = v } })
         row("Skin Texture", read = { target.skinParameters().texturePreserve }, write = { v -> target.skin { texturePreserve = v } })

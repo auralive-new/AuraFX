@@ -26,6 +26,7 @@ class BeautyPipelineEffect(
     override val id: String = ID
 
     private var resolve: ShaderProgram? = null
+    private var copy2d: ShaderProgram? = null
     private var skin: ShaderProgram? = null
     private var warp: ShaderProgram? = null
     private val resolved = GlFramebuffer()
@@ -46,6 +47,7 @@ class BeautyPipelineEffect(
 
     override fun onAttach(context: EffectContext) {
         resolve = ShaderProgram(BeautyShaders.VERT_RESOLVE, BeautyShaders.FRAG_RESOLVE_OES)
+        copy2d = ShaderProgram(BeautyShaders.VERT_BLIT, BeautyShaders.FRAG_COPY_2D)
         skin = ShaderProgram(BeautyShaders.VERT_BLIT, BeautyShaders.FRAG_SKIN)
         warp = ShaderProgram(BeautyShaders.VERT_WARP, BeautyShaders.FRAG_WARP)
         val qv = floatArrayOf(-1f, -1f, 0f, 0f, 1f, -1f, 1f, 0f, -1f, 1f, 0f, 1f, 1f, 1f, 1f, 1f)
@@ -92,12 +94,16 @@ class BeautyPipelineEffect(
         if (!attached || frame.width <= 0 || frame.height <= 0) return
         val snap = rig.snapshot()
         val landmarks = tracking.landmarks
+        val incoming = frame.processedTextureId
         if (snap.isIdentity() || landmarks == null) {
-            frame.processedTextureId = 0
             return
         }
         ensureTargets(frame.width, frame.height)
-        resolveOes(frame)
+        if (incoming != 0 && !frame.processedIsOes) {
+            copyPrevious(incoming)
+        } else {
+            resolveOes(frame)
+        }
         uploadMask(landmarks)
         runSkin(frame, snap)
         val outTex = if (snap.shapeIdentity()) {
@@ -113,9 +119,11 @@ class BeautyPipelineEffect(
     override fun onDetach() {
         attached = false
         resolve?.release()
+        copy2d?.release()
         skin?.release()
         warp?.release()
         resolve = null
+        copy2d = null
         skin = null
         warp = null
         resolved.release()
@@ -157,6 +165,19 @@ class BeautyPipelineEffect(
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         checkGl("beauty resolve")
+    }
+
+    private fun copyPrevious(tex: Int) {
+        val program = copy2d ?: return
+        resolved.bind()
+        program.use()
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex)
+        GLES30.glUniform1i(program.loc("uTexture"), 0)
+        GLES30.glBindVertexArray(quadVao)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        checkGl("beauty copy2d")
     }
 
     private fun uploadMask(landmarks: FaceLandmarks) {

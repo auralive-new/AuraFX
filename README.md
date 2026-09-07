@@ -28,8 +28,9 @@ Step 2 skin/beauty/face-shape: [`docs/STEP_2_BEAUTY_FACE.md`](docs/STEP_2_BEAUTY
 session.skin { smoothness = 0.3f }
 session.beauty { toothWhiten = 0.4f; circles = 0.3f }
 session.faceShape { vFace = 0.2f; eyeEnlarge = 0.15f }
-session.resetBeauty()
-```
+session.makeup { lipstick { intensity = 0.5f }; eyeliner { style = EyelinerStyle.Classic; intensity = 0.6f } }
+session.applyMakeupPreset(MakeupPreset.Classic)
+
 
 ## Public API
 

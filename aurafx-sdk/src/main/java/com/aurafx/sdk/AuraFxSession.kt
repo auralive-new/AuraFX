@@ -14,6 +14,8 @@ import com.aurafx.sdk.api.AuraFxSessionListener
 import com.aurafx.sdk.api.BeautyParameters
 import com.aurafx.sdk.api.FaceShapeParameters
 import com.aurafx.sdk.api.LensFacing
+import com.aurafx.sdk.api.MakeupParameters
+import com.aurafx.sdk.api.MakeupPreset
 import com.aurafx.sdk.api.PerformanceSnapshot
 import com.aurafx.sdk.api.SessionConfig
 import com.aurafx.sdk.api.SkinParameters
@@ -24,6 +26,9 @@ import com.aurafx.sdk.beauty.FaceShapeEngine
 import com.aurafx.sdk.beauty.SkinEngine
 import com.aurafx.sdk.effect.Effect
 import com.aurafx.sdk.effect.EffectManager
+import com.aurafx.sdk.makeup.MakeupEngine
+import com.aurafx.sdk.makeup.MakeupPipelineEffect
+import com.aurafx.sdk.makeup.MakeupRig
 import com.aurafx.sdk.internal.AuraFxLog
 import com.aurafx.sdk.internal.camera.AuraFxCameraController
 import com.aurafx.sdk.internal.camera.CameraPermission
@@ -54,9 +59,11 @@ class AuraFxSession internal constructor(
     val pipeline = FramePipeline()
     val vision = VisionProcessor()
     val beautyRig = BeautyRig()
+    val makeupRig = MakeupRig()
     val skinEngine = SkinEngine(beautyRig)
     val beautyEngine = BeautyEngine(beautyRig)
     val faceShapeEngine = FaceShapeEngine(beautyRig)
+    val makeupEngine = MakeupEngine(makeupRig)
     val performance = PerformanceManager(
         enabled = instrumentationEnabled,
         nativeHeapProbe = { DeviceCapabilities.nativeHeapAllocatedBytes() },
@@ -113,6 +120,7 @@ class AuraFxSession internal constructor(
     private var faceAnalyzer: MediaPipeFaceLandmarkerAnalyzer? = null
 
     init {
+        effects.register(MakeupPipelineEffect(makeupRig))
         effects.register(BeautyPipelineEffect(beautyRig))
         if (config.enableFaceLandmarks) {
             val analyzer = MediaPipeFaceLandmarkerAnalyzer(
@@ -260,6 +268,23 @@ class AuraFxSession internal constructor(
         beautyRig.reset()
         return this
     }
+
+    fun makeup(block: MakeupParameters.() -> Unit): AuraFxSession {
+        makeupEngine.apply(block)
+        return this
+    }
+
+    fun applyMakeupPreset(preset: MakeupPreset): AuraFxSession {
+        makeupEngine.preset(preset)
+        return this
+    }
+
+    fun resetMakeup(): AuraFxSession {
+        makeupEngine.reset()
+        return this
+    }
+
+    fun makeupParameters(): MakeupParameters = makeupEngine.snapshot()
 
     fun skinParameters(): SkinParameters = beautyRig.copySkin()
 
