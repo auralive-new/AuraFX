@@ -1,6 +1,26 @@
 package com.aurafx.sdk.makeup
 
 internal object MakeupShaders {
+    const val VERT_BLIT = """#version 300 es
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aUv;
+out vec2 vUv;
+void main() {
+  gl_Position = vec4(aPos, 0.0, 1.0);
+  vUv = aUv;
+}
+"""
+
+    const val FRAG_COPY_2D = """#version 300 es
+precision mediump float;
+uniform sampler2D uTexture;
+in vec2 vUv;
+out vec4 fragColor;
+void main() {
+  fragColor = texture(uTexture, vUv);
+}
+"""
+
     const val VERT = """#version 300 es
 layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec2 aUv;

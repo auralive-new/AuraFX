@@ -296,6 +296,65 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
             target.setFilter(id, v)
             showFilter()
         })
+        val bgLabel = TextView(this)
+        bgLabel.setTextColor(ContextCompat.getColor(this, R.color.text))
+        bgLabel.textSize = 12f
+        fun showBg() {
+            val p = target.backgroundParameters()
+            bgLabel.text = "Background  ${p.id ?: "none"}  i=${"%.2f".format(p.intensity)}"
+        }
+        showBg()
+        host.addView(bgLabel)
+        val nextBg = android.widget.Button(this)
+        nextBg.text = "Next background"
+        nextBg.setOnClickListener {
+            val ids = com.aurafx.sdk.scene.BackgroundCatalog.items.map { it.id }
+            val cur = target.backgroundParameters().id
+            val idx = ids.indexOf(cur)
+            val id = ids[(idx + 1 + ids.size) % ids.size]
+            target.background { enabled = true; this.id = id; intensity = 0.75f }
+            showBg()
+        }
+        host.addView(nextBg)
+        val clearBg = android.widget.Button(this)
+        clearBg.text = "Clear background"
+        clearBg.setOnClickListener { target.resetBackground(); showBg() }
+        host.addView(clearBg)
+        row("BG intensity", read = { target.backgroundParameters().intensity }, write = { v ->
+            val id = target.backgroundParameters().id ?: com.aurafx.sdk.scene.BackgroundCatalog.items.first().id
+            target.background { enabled = true; this.id = id; intensity = v }
+            showBg()
+        })
+        val hairBtn = android.widget.Button(this)
+        hairBtn.text = "Cycle hair color"
+        hairBtn.setOnClickListener {
+            val colors = com.aurafx.sdk.api.HairColorId.entries
+            val cur = target.hairParameters().color
+            val next = colors[(colors.indexOf(cur) + 1) % colors.size]
+            target.hair { enabled = true; color = next; intensity = 0.6f }
+        }
+        host.addView(hairBtn)
+        row("Hair color", read = { target.hairParameters().intensity }, write = { v ->
+            target.hair { enabled = v > 0f; intensity = v }
+        })
+        row("Body slim", read = { target.bodyParameters().slim }, write = { v ->
+            target.body { enabled = v > 0f; slim = v }
+        })
+        row("Body waist", read = { target.bodyParameters().waist }, write = { v ->
+            target.body { enabled = v > 0f; waist = v }
+        })
+        val lightBtn = android.widget.Button(this)
+        lightBtn.text = "Cycle lighting"
+        lightBtn.setOnClickListener {
+            val modes = com.aurafx.sdk.api.LightingMode.entries
+            val cur = target.lightingParameters().mode
+            val next = modes[(modes.indexOf(cur) + 1) % modes.size]
+            target.lighting { enabled = true; mode = next; intensity = 0.5f }
+        }
+        host.addView(lightBtn)
+        row("Lighting", read = { target.lightingParameters().intensity }, write = { v ->
+            target.lighting { enabled = v > 0f; intensity = v }
+        })
         val resetMk = android.widget.Button(this)
         resetMk.text = "Classic makeup"
         resetMk.setOnClickListener {

@@ -22,6 +22,7 @@ class MakeupPipelineEffect(
     override val id: String = ID
 
     private var resolve: ShaderProgram? = null
+    private var copy2d: ShaderProgram? = null
     private var makeup: ShaderProgram? = null
     private val resolved = GlFramebuffer()
     private val composed = GlFramebuffer()
@@ -37,6 +38,7 @@ class MakeupPipelineEffect(
 
     override fun onAttach(context: EffectContext) {
         resolve = ShaderProgram(MakeupShaders.VERT, MakeupShaders.FRAG_OES)
+        copy2d = ShaderProgram(MakeupShaders.VERT_BLIT, MakeupShaders.FRAG_COPY_2D)
         makeup = ShaderProgram(MakeupShaders.VERT, MakeupShaders.FRAG_MAKEUP)
         val qv = floatArrayOf(-1f, -1f, 0f, 0f, 1f, -1f, 1f, 0f, -1f, 1f, 0f, 1f, 1f, 1f, 1f, 1f)
         val qBuf = ByteBuffer.allocateDirect(qv.size * 4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(qv)
@@ -81,7 +83,12 @@ class MakeupPipelineEffect(
         if (snap.isIdentity() || lm == null) return
         val geo = MakeupGeometryBuilder.build(lm, snap)
         ensure(frame.width, frame.height)
-        resolveOes(frame)
+        val incoming = frame.processedTextureId
+        if (incoming != 0 && !frame.processedIsOes) {
+            copyPrevious(incoming)
+        } else {
+            resolveOes(frame)
+        }
         uploadMasks(lm, geo, snap)
         compose(frame, snap, geo)
         frame.processedTextureId = composed.tex
@@ -91,8 +98,10 @@ class MakeupPipelineEffect(
     override fun onDetach() {
         attached = false
         resolve?.release()
+        copy2d?.release()
         makeup?.release()
         resolve = null
+        copy2d = null
         makeup = null
         resolved.release()
         composed.release()
@@ -127,6 +136,19 @@ class MakeupPipelineEffect(
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         checkGl("makeup resolve")
+    }
+
+    private fun copyPrevious(tex: Int) {
+        val program = copy2d ?: return
+        resolved.bind()
+        program.use()
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex)
+        GLES30.glUniform1i(program.loc("uTexture"), 0)
+        GLES30.glBindVertexArray(quadVao)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        checkGl("makeup copy2d")
     }
 
     private fun uploadMasks(lm: com.aurafx.sdk.beauty.FaceLandmarks, geo: MakeupGeometry, params: com.aurafx.sdk.api.MakeupParameters) {

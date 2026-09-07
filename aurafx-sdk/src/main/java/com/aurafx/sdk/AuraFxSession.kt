@@ -11,10 +11,14 @@ import com.aurafx.sdk.api.AuraFxError
 import com.aurafx.sdk.api.AuraFxInputFrame
 import com.aurafx.sdk.api.AuraFxResult
 import com.aurafx.sdk.api.AuraFxSessionListener
+import com.aurafx.sdk.api.BackgroundParameters
+import com.aurafx.sdk.api.BodyParameters
 import com.aurafx.sdk.api.BeautyParameters
 import com.aurafx.sdk.api.FaceShapeParameters
 import com.aurafx.sdk.api.LensFacing
 import com.aurafx.sdk.api.FilterParameters
+import com.aurafx.sdk.api.HairParameters
+import com.aurafx.sdk.api.LightingParameters
 import com.aurafx.sdk.api.MakeupParameters
 import com.aurafx.sdk.api.MakeupPreset
 import com.aurafx.sdk.api.PerformanceSnapshot
@@ -44,7 +48,20 @@ import com.aurafx.sdk.performance.PerformanceManager
 import com.aurafx.sdk.pipeline.FramePipeline
 import com.aurafx.sdk.pipeline.LiveIngressPolicy
 import com.aurafx.sdk.vision.VisionProcessor
-import com.aurafx.sdk.vision.mediapipe.MediaPipeFaceLandmarkerAnalyzer
+import com.aurafx.sdk.scene.BackgroundEngine
+import com.aurafx.sdk.scene.BackgroundPipelineEffect
+import com.aurafx.sdk.scene.BackgroundRig
+import com.aurafx.sdk.scene.BodyEngine
+import com.aurafx.sdk.scene.BodyPipelineEffect
+import com.aurafx.sdk.scene.BodyRig
+import com.aurafx.sdk.scene.HairEngine
+import com.aurafx.sdk.scene.HairPipelineEffect
+import com.aurafx.sdk.scene.HairRig
+import com.aurafx.sdk.scene.LightingEngine
+import com.aurafx.sdk.scene.LightingPipelineEffect
+import com.aurafx.sdk.scene.LightingRig
+import com.aurafx.sdk.scene.SegmentationUploadEffect
+import com.aurafx.sdk.vision.mediapipe.MediaPipeSceneAnalyzer
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -72,6 +89,14 @@ class AuraFxSession internal constructor(
     val makeupEngine = MakeupEngine(makeupRig)
     val filterRig = FilterRig()
     val filterEngine = FilterEngine(filterRig)
+    val backgroundRig = BackgroundRig()
+    val hairRig = HairRig()
+    val bodyRig = BodyRig()
+    val lightingRig = LightingRig()
+    val backgroundEngine = BackgroundEngine(backgroundRig)
+    val hairEngine = HairEngine(hairRig)
+    val bodyEngine = BodyEngine(bodyRig)
+    val lightingEngine = LightingEngine(lightingRig)
     val performance = PerformanceManager(
         enabled = instrumentationEnabled,
         nativeHeapProbe = { DeviceCapabilities.nativeHeapAllocatedBytes() },
@@ -125,19 +150,24 @@ class AuraFxSession internal constructor(
         }
     }
 
-    private var faceAnalyzer: MediaPipeFaceLandmarkerAnalyzer? = null
+    private var sceneAnalyzer: MediaPipeSceneAnalyzer? = null
 
     init {
+        effects.register(SegmentationUploadEffect())
+        effects.register(BackgroundPipelineEffect(backgroundRig))
         effects.register(MakeupPipelineEffect(makeupRig))
         effects.register(BeautyPipelineEffect(beautyRig))
+        effects.register(HairPipelineEffect(hairRig))
+        effects.register(BodyPipelineEffect(bodyRig))
+        effects.register(LightingPipelineEffect(lightingRig))
         effects.register(FilterPipelineEffect(filterRig))
         if (config.enableFaceLandmarks) {
-            val analyzer = MediaPipeFaceLandmarkerAnalyzer(
+            val analyzer = MediaPipeSceneAnalyzer(
                 context = appContext,
                 mirrorX = { config.mirrorFrontCamera && lastFacing == LensFacing.FRONT },
                 onResult = { vision.publish(it) },
             )
-            faceAnalyzer = analyzer
+            sceneAnalyzer = analyzer
             camera.analyzer = analyzer
         }
         renderer.start()
@@ -328,6 +358,51 @@ class AuraFxSession internal constructor(
         return this
     }
 
+    fun background(block: BackgroundParameters.() -> Unit): AuraFxSession {
+        backgroundEngine.apply(block)
+        return this
+    }
+
+    fun hair(block: HairParameters.() -> Unit): AuraFxSession {
+        hairEngine.apply(block)
+        return this
+    }
+
+    fun body(block: BodyParameters.() -> Unit): AuraFxSession {
+        bodyEngine.apply(block)
+        return this
+    }
+
+    fun lighting(block: LightingParameters.() -> Unit): AuraFxSession {
+        lightingEngine.apply(block)
+        return this
+    }
+
+    fun resetBackground(): AuraFxSession {
+        backgroundEngine.reset()
+        return this
+    }
+
+    fun resetHair(): AuraFxSession {
+        hairEngine.reset()
+        return this
+    }
+
+    fun resetBody(): AuraFxSession {
+        bodyEngine.reset()
+        return this
+    }
+
+    fun resetLighting(): AuraFxSession {
+        lightingEngine.reset()
+        return this
+    }
+
+    fun backgroundParameters(): BackgroundParameters = backgroundEngine.snapshot()
+    fun hairParameters(): HairParameters = hairEngine.snapshot()
+    fun bodyParameters(): BodyParameters = bodyEngine.snapshot()
+    fun lightingParameters(): LightingParameters = lightingEngine.snapshot()
+
     fun filterParameters(): FilterParameters = filterEngine.parameters()
 
     fun filterCatalog(): List<FilterDefinition> = filterEngine.catalog()
@@ -359,10 +434,10 @@ class AuraFxSession internal constructor(
         renderer.setLiveCameraActive(false)
         vision.clear()
         try {
-            faceAnalyzer?.close()
+            sceneAnalyzer?.close()
         } catch (_: Throwable) {
         }
-        faceAnalyzer = null
+        sceneAnalyzer = null
         camera.analyzer = null
         try {
             camera.release()

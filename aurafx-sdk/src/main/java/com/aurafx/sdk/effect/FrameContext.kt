@@ -16,6 +16,8 @@ class FrameContext(
 ) {
     var processedTextureId: Int = 0
     var processedIsOes: Boolean = false
+    /** Packed scene mask (R person, G hair, B body, A face-skin). 0 if absent. */
+    var segmentationTextureId: Int = 0
 
     fun outputTextureId(): Int = if (processedTextureId != 0) processedTextureId else inputTextureId
 
