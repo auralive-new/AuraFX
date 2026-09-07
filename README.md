@@ -69,4 +69,6 @@ export ANDROID_HOME=/path/to/android-sdk
 Install Studio on a **physical** device for visual QA. Unit tests do not prove realism.
 
 REFERENCE SOURCE = NOT AVAILABLE until Tango recordings are in the workspace.
+
+Inventory: [`docs/TANGO_REFERENCE_INVENTORY.md`](docs/TANGO_REFERENCE_INVENTORY.md) — **NEEDS SOURCE MATERIAL**, TANGO COMPLETE = NO.
 PHYSICAL DEVICE = PENDING until a phone is connected.

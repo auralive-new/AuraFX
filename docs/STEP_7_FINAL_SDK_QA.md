@@ -4,7 +4,7 @@ Standalone SDK. **No AuraLive. Do not start Step 8.**
 
 Physical-device visual QA is **PENDING**. Automated tests are not visual realism proof.
 
-REFERENCE SOURCE = **NOT AVAILABLE** (no Tango recordings in this workspace). Completeness audit vs Tango remains pending.
+REFERENCE SOURCE = **NOT AVAILABLE** (no Tango recordings in this workspace). Completeness audit vs Tango remains pending. See [`TANGO_REFERENCE_INVENTORY.md`](TANGO_REFERENCE_INVENTORY.md).
 
 ## Final architecture
 
