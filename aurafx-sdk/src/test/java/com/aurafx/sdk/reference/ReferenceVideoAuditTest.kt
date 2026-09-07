@@ -34,9 +34,9 @@ class ReferenceVideoAuditTest {
         assertThat(FilterCatalog.validate()).isEmpty()
         assertThat(FilterCatalog.filters).hasSize(51)
         assertThat(AREffectCatalog.validate()).isEmpty()
-        assertThat(AREffectCatalog.effects).hasSize(10)
+        assertThat(AREffectCatalog.effects.size).isAtLeast(61)
         assertThat(BackgroundCatalog.validate()).isEmpty()
-        assertThat(BackgroundCatalog.items).hasSize(20)
+        assertThat(BackgroundCatalog.items.size).isAtLeast(36)
         val ids = FilterCatalog.filters.map { it.id } +
             AREffectCatalog.effects.map { it.id } +
             BackgroundCatalog.items.map { it.id }

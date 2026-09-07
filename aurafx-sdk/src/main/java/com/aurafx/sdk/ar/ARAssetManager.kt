@@ -30,32 +30,27 @@ class ARAssetManager {
         val p = tr.pose
         val bounce = if (def.animation.scalePulse) anim.bounce(tr.expression.smile) else 1f
         val earScale = (0.11f + 0.04f * tr.expression.browRaise) * bounce * p.iod * 2.4f
-        when (def.look) {
-            0 -> { // Desert Sun
-                halo(out, tr, 0.16f * bounce, p.roll, 1f, 0.72f, 0.28f, def.hairOcclude)
-                cheekPaintHint(out, tr)
-            }
-            1, 2 -> { // cats
-                val dark = def.look == 2
-                val r = if (dark) 0.08f else 0.82f
-                val g = if (dark) 0.07f else 0.55f
-                val b = if (dark) 0.09f else 0.32f
+        val r = def.paint[0]
+        val g = def.paint[1]
+        val b = def.paint[2]
+        when (def.family) {
+            0 -> halo(out, tr, 0.16f * bounce, p.roll, r, g, b, def.hairOcclude)
+            1 -> {
                 ear(out, tr, left = true, s = earScale, r, g, b, def.hairOcclude)
                 ear(out, tr, left = false, s = earScale, r, g, b, def.hairOcclude)
-                whiskers(out, tr, if (dark) 0.05f else 0.15f)
+                whiskers(out, tr, (r + g + b) / 6f)
             }
-            3, 5 -> { // glasses
-                glasses(out, tr, bounce, if (def.look == 3) 0.15f else 0.08f, def.hairOcclude)
-            }
+            2 -> glasses(out, tr, bounce, r * 0.35f, def.hairOcclude)
+            3 -> { /* face paint is compose-shader */ }
+            4 -> moon(out, tr, 0.12f * bounce, p.roll, def.hairOcclude)
+            5 -> earrings(out, tr, r, g, b, def.hairOcclude)
             6 -> {
-                halo(out, tr, 0.09f, p.roll, 0.85f, 0.12f, 0.1f, def.hairOcclude)
+                ear(out, tr, left = true, s = earScale * 0.85f, r, g, b, def.hairOcclude)
+                ear(out, tr, left = false, s = earScale * 0.85f, r, g, b, def.hairOcclude)
             }
-            8 -> {
-                halo(out, tr, 0.13f * bounce, p.roll, 1f, 0.45f, 0.55f, def.hairOcclude)
-            }
-            9 -> {
-                moon(out, tr, 0.12f, p.roll, def.hairOcclude)
-            }
+            7 -> halo(out, tr, 0.11f * bounce, p.roll, r, g, b, def.hairOcclude)
+            8 -> halo(out, tr, 0.14f * bounce, p.roll, r, g, b, def.hairOcclude)
+            9 -> irisGlow(out, tr, r, g, b)
         }
         appendParticles(out, anim, intensity)
         return out
@@ -104,8 +99,20 @@ class ARAssetManager {
         }
     }
 
-    private fun cheekPaintHint(out: ArrayList<ARSprite>, tr: ARTrackingContext) {
-        // zero-size marker unused; paint is in the compose shader
+    private fun earrings(out: ArrayList<ARSprite>, tr: ARTrackingContext, r: Float, g: Float, b: Float, occ: Float) {
+        val s = tr.pose.iod * 0.08f
+        val drop = tr.pose.iod * 0.55f
+        val left = rotate(tr.leftCheek[0], tr.leftCheek[1], -tr.pose.iod * 0.15f, drop, tr.pose.roll, tr.pose.yaw * 0.03f)
+        val right = rotate(tr.rightCheek[0], tr.rightCheek[1], tr.pose.iod * 0.15f, drop, tr.pose.roll, tr.pose.yaw * 0.03f)
+        out.add(ARSprite(left[0], left[1], s, s * 1.6f, tr.pose.roll, ARSpriteKind.Sparkle.ordinal, r, g, b, occ * 0.4f))
+        out.add(ARSprite(right[0], right[1], s, s * 1.6f, tr.pose.roll, ARSpriteKind.Sparkle.ordinal, r, g, b, occ * 0.4f))
+    }
+
+    private fun irisGlow(out: ArrayList<ARSprite>, tr: ARTrackingContext, r: Float, g: Float, b: Float) {
+        val s = tr.pose.iod * 0.16f * (1f - 0.7f * tr.expression.blinkLeft)
+        val t = tr.pose.iod * 0.16f * (1f - 0.7f * tr.expression.blinkRight)
+        out.add(ARSprite(tr.leftIris[0], tr.leftIris[1], s, s, 0f, ARSpriteKind.Sparkle.ordinal, r, g, b, 0.05f))
+        out.add(ARSprite(tr.rightIris[0], tr.rightIris[1], t, t, 0f, ARSpriteKind.Sparkle.ordinal, r, g, b, 0.05f))
     }
 
     private fun appendParticles(out: ArrayList<ARSprite>, anim: ARAnimationEngine, intensity: Float) {

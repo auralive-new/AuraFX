@@ -2,6 +2,7 @@ package com.aurafx.sdk.makeup
 
 import android.opengl.GLES11Ext
 import android.opengl.GLES30
+import com.aurafx.sdk.api.EyeshadowStyle
 import com.aurafx.sdk.api.LensFacing
 import com.aurafx.sdk.api.LensStyle
 import com.aurafx.sdk.api.LipLook
@@ -216,6 +217,17 @@ class MakeupPipelineEffect(
         GLES30.glUniform1f(program.loc("uBrow"), snap.eyebrow.intensity)
         GLES30.glUniform3fv(program.loc("uBrowCol"), 1, col(snap.eyebrow.color), 0)
         GLES30.glUniform1f(program.loc("uShadow"), snap.eyeshadow.intensity)
+        GLES30.glUniform1i(
+            program.loc("uShadowStyle"),
+            when (snap.eyeshadow.style) {
+                EyeshadowStyle.Goldie -> 0
+                EyeshadowStyle.CatEye -> 1
+                EyeshadowStyle.Classic -> 2
+                EyeshadowStyle.Glam -> 3
+                EyeshadowStyle.Nude -> 4
+                EyeshadowStyle.Smokey -> 5
+            },
+        )
         GLES30.glUniform3fv(program.loc("uLidCol"), 1, col(snap.eyeshadow.lidColor), 0)
         GLES30.glUniform3fv(program.loc("uCreaseCol"), 1, col(snap.eyeshadow.creaseColor), 0)
         GLES30.glUniform1f(program.loc("uLiner"), snap.eyeliner.intensity)
@@ -231,6 +243,7 @@ class MakeupPipelineEffect(
                 LipLook.GlossyPop -> 0
                 LipLook.Lacquer -> 1
                 LipLook.Ombre -> 2
+                LipLook.Velvet -> 3
             },
         )
         GLES30.glUniform1f(program.loc("uLipLiner"), snap.lipLiner.intensity)
@@ -251,6 +264,8 @@ class MakeupPipelineEffect(
         LensStyle.WarmGlint -> floatArrayOf(0.62f, 0.42f, 0.28f)
         LensStyle.KiwiPop -> floatArrayOf(0.35f, 0.72f, 0.32f)
         LensStyle.SilverMist -> floatArrayOf(0.62f, 0.66f, 0.70f)
+        LensStyle.AmberGlow -> floatArrayOf(0.78f, 0.48f, 0.18f)
+        LensStyle.BlueDew -> floatArrayOf(0.28f, 0.52f, 0.88f)
     }
 
     companion object {

@@ -44,6 +44,8 @@ precision highp float;
 uniform sampler2D uImage;
 uniform sampler2D uMask;
 uniform int uLook;
+uniform int uFamily;
+uniform vec3 uPaint;
 uniform float uIntensity;
 uniform float uTime;
 uniform float uSmile;
@@ -80,48 +82,42 @@ void main() {
   float hair = smoothstep(0.2, 0.7, m.g);
   vec3 outc = src;
   float I = clamp(uIntensity, 0.0, 1.0);
-  if (uLook == 0) {
-    float sun = gauss(vUv, uForehead + vec2(0.18, -0.12), 0.35);
-    outc += vec3(0.18, 0.08, 0.0) * sun * I * (1.0 - hair * 0.5);
-    outc = mix(outc, outc * vec3(1.08, 1.02, 0.92), 0.25 * I * person);
-  }
-  if (uLook == 1 || uLook == 2) {
+  float uniq = fract(float(uLook) * 0.073 + 0.13);
+  if (uFamily == 0) {
+    float sun = gauss(vUv, uForehead + vec2(0.12 + uniq * 0.1, -0.12), 0.32 + uniq * 0.08);
+    outc += uPaint * sun * I * (1.0 - hair * 0.5);
+    outc = mix(outc, outc * (vec3(1.0) + uPaint * 0.12), 0.25 * I * person);
+  } else if (uFamily == 1) {
     float nose = gauss(vUv, uMouthP + vec2(0.0, -uIod * 0.55), uIod * 0.18);
-    vec3 pad = uLook == 2 ? vec3(0.12, 0.08, 0.08) : vec3(0.9, 0.55, 0.5);
-    outc = mix(outc, mix(outc, pad, 0.55), nose * I * (1.0 - uMouth * 0.2));
+    outc = mix(outc, mix(outc, uPaint, 0.45), nose * I * (1.0 - uMouth * 0.2));
     float eg = (1.0 - uBlinkL) * gauss(vUv, uIrisL, uIod * 0.16) + (1.0 - uBlinkR) * gauss(vUv, uIrisR, uIod * 0.16);
-    vec3 glow = uLook == 2 ? vec3(1.0, 0.82, 0.2) : vec3(0.4, 0.9, 0.45);
-    outc += glow * eg * 0.45 * I;
-  }
-  if (uLook == 3) {
-    outc = mix(outc, outc + vec3(0.08, 0.02, 0.1), 0.2 * I * person);
-  }
-  if (uLook == 4) {
+    outc += uPaint * eg * 0.4 * I;
+  } else if (uFamily == 2) {
+    outc = mix(outc, outc + uPaint * 0.12, 0.22 * I * person);
+  } else if (uFamily == 3) {
     float ch = gauss(vUv, uCheekL, uIod * 0.28) + gauss(vUv, uCheekR, uIod * 0.28) + gauss(vUv, uForehead, uIod * 0.32);
-    vec3 rain = hsv(fract(vUv.x * 1.8 + uTime * 0.07), 0.75, 1.0);
-    outc = mix(outc, mix(outc, rain, 0.55), ch * face * I);
-  }
-  if (uLook == 5) {
-    outc = mix(outc, outc * vec3(1.06, 1.04, 0.96) + vec3(0.04, 0.03, 0.0), 0.35 * I * person);
-  }
-  if (uLook == 6) {
-    float mark = gauss(vUv, uForehead, uIod * 0.22);
-    outc = mix(outc, vec3(0.7, 0.08, 0.1), mark * 0.55 * I * face);
-    float eg = (1.0 - uBlinkL) * gauss(vUv, uIrisL, uIod * 0.14) + (1.0 - uBlinkR) * gauss(vUv, uIrisR, uIod * 0.14);
-    outc += vec3(0.8, 0.1, 0.05) * eg * 0.5 * I;
-  }
-  if (uLook == 7) {
-    float ch = gauss(vUv, uCheekL, uIod * 0.24) + gauss(vUv, uCheekR, uIod * 0.24);
-    outc = mix(outc, mix(outc, vec3(1.0, 0.45, 0.55), 0.5), ch * I * (0.45 + 0.55 * uSmile) * face);
-  }
-  if (uLook == 8) {
-    float wash = gauss(vUv, uCheekL, uIod * 0.3) + gauss(vUv, uCheekR, uIod * 0.3);
-    outc = mix(outc, mix(outc, vec3(1.0, 0.55, 0.62), 0.4), wash * I * face);
-  }
-  if (uLook == 9) {
-    outc = mix(outc, outc * vec3(0.92, 0.95, 1.08) + vec3(0.02, 0.03, 0.06), 0.4 * I * person);
+    vec3 rain = hsv(fract(vUv.x * 1.6 + uTime * 0.07 + uniq), 0.7, 1.0);
+    vec3 tone = mix(uPaint, rain, 0.35);
+    outc = mix(outc, mix(outc, tone, 0.55), ch * face * I * (0.45 + 0.55 * uSmile));
+  } else if (uFamily == 4) {
+    outc = mix(outc, outc * vec3(0.92, 0.95, 1.08) + uPaint * 0.08, 0.4 * I * person);
     float eg = gauss(vUv, uIrisL, uIod * 0.18) + gauss(vUv, uIrisR, uIod * 0.18);
-    outc += vec3(0.35, 0.45, 0.7) * eg * 0.25 * I * (1.0 - 0.5 * (uBlinkL + uBlinkR));
+    outc += uPaint * eg * 0.25 * I * (1.0 - 0.5 * (uBlinkL + uBlinkR));
+  } else if (uFamily == 5) {
+    float glow = gauss(vUv, uCheekL, uIod * 0.12) + gauss(vUv, uCheekR, uIod * 0.12);
+    outc += uPaint * glow * 0.35 * I;
+  } else if (uFamily == 6) {
+    float mark = gauss(vUv, uForehead, uIod * 0.2);
+    outc = mix(outc, uPaint, mark * 0.4 * I * face);
+  } else if (uFamily == 7) {
+    float wash = gauss(vUv, uCheekL, uIod * 0.3) + gauss(vUv, uCheekR, uIod * 0.3);
+    outc = mix(outc, mix(outc, uPaint, 0.4), wash * I * face);
+  } else if (uFamily == 8) {
+    float cap = gauss(vUv, uForehead + vec2(0.0, -uIod * 0.2), uIod * 0.42);
+    outc = mix(outc, mix(outc, uPaint, 0.5), cap * I * (1.0 - hair * 0.35));
+  } else if (uFamily == 9) {
+    float eg = (1.0 - uBlinkL) * gauss(vUv, uIrisL, uIod * 0.14) + (1.0 - uBlinkR) * gauss(vUv, uIrisR, uIod * 0.14);
+    outc += uPaint * eg * 0.55 * I;
   }
   fragColor = vec4(clamp(outc, 0.0, 1.0), src4.a);
 }
@@ -207,5 +203,6 @@ void main() {
 """
 
     fun sourcesOk(): Boolean =
-        FRAG_COMPOSE.contains("uLook") && FRAG_SPRITE.contains("uKind") && FRAG_SPRITE.contains("uOcc")
+        FRAG_COMPOSE.contains("uLook") && FRAG_COMPOSE.contains("uFamily") &&
+            FRAG_SPRITE.contains("uKind") && FRAG_SPRITE.contains("uOcc")
 }

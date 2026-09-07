@@ -186,6 +186,8 @@ class ARPipelineEffect(
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, maskTex(frame))
         GLES30.glUniform1i(program.loc("uMask"), 1)
         GLES30.glUniform1i(program.loc("uLook"), def.look)
+        GLES30.glUniform1i(program.loc("uFamily"), def.family)
+        GLES30.glUniform3f(program.loc("uPaint"), def.paint[0], def.paint[1], def.paint[2])
         GLES30.glUniform1f(program.loc("uIntensity"), intensity)
         GLES30.glUniform1f(program.loc("uTime"), anim.timeSec)
         GLES30.glUniform1f(program.loc("uSmile"), tr.expression.smile)

@@ -90,14 +90,39 @@ data class EyebrowMakeup(
 data class EyeshadowMakeup(
     var enabled: Boolean = false,
     var intensity: Float = 0f,
+    var style: EyeshadowStyle = EyeshadowStyle.Classic,
     var lidColor: MakeupColor = MakeupColor(0.55f, 0.38f, 0.42f),
     var creaseColor: MakeupColor = MakeupColor(0.32f, 0.18f, 0.22f),
 ) {
     fun clampInPlace() {
         intensity = clamp01(intensity)
+        applyStylePalette()
         lidColor.clampInPlace()
         creaseColor.clampInPlace()
         if (!enabled) intensity = 0f
+    }
+
+    private fun applyStylePalette() {
+        when (style) {
+            EyeshadowStyle.Goldie -> {
+                lidColor.set(0.88f, 0.68f, 0.22f); creaseColor.set(0.55f, 0.32f, 0.08f)
+            }
+            EyeshadowStyle.CatEye -> {
+                lidColor.set(0.18f, 0.12f, 0.14f); creaseColor.set(0.06f, 0.04f, 0.05f)
+            }
+            EyeshadowStyle.Classic -> {
+                lidColor.set(0.55f, 0.38f, 0.42f); creaseColor.set(0.32f, 0.18f, 0.22f)
+            }
+            EyeshadowStyle.Glam -> {
+                lidColor.set(0.62f, 0.28f, 0.55f); creaseColor.set(0.28f, 0.08f, 0.32f)
+            }
+            EyeshadowStyle.Nude -> {
+                lidColor.set(0.78f, 0.62f, 0.52f); creaseColor.set(0.52f, 0.36f, 0.28f)
+            }
+            EyeshadowStyle.Smokey -> {
+                lidColor.set(0.28f, 0.26f, 0.30f); creaseColor.set(0.08f, 0.07f, 0.10f)
+            }
+        }
     }
 }
 
@@ -240,7 +265,7 @@ data class MakeupParameters(
                 contour.enabled = true; contour.intensity = 0.22f
                 highlight.enabled = true; highlight.intensity = 0.28f
                 eyebrow.enabled = true; eyebrow.intensity = 0.45f; eyebrow.style = BrowStyle.Natural
-                eyeshadow.enabled = true; eyeshadow.intensity = 0.32f
+                eyeshadow.enabled = true; eyeshadow.intensity = 0.32f; eyeshadow.style = EyeshadowStyle.Classic
                 eyeliner.enabled = true; eyeliner.intensity = 0.55f; eyeliner.style = EyelinerStyle.Classic
                 eyelashes.enabled = true; eyelashes.intensity = 0.4f; eyelashes.style = LashStyle.NaturalCurl
                 lipstick.enabled = true; lipstick.intensity = 0.55f; lipstick.opacity = 0.7f
@@ -257,8 +282,7 @@ data class MakeupParameters(
                 contour.enabled = true; contour.intensity = 0.18f
                 highlight.enabled = true; highlight.intensity = 0.45f
                 eyebrow.enabled = true; eyebrow.intensity = 0.4f; eyebrow.style = BrowStyle.SoftCurve
-                eyeshadow.enabled = true; eyeshadow.intensity = 0.5f
-                eyeshadow.lidColor.set(0.75f, 0.45f, 0.70f)
+                eyeshadow.enabled = true; eyeshadow.intensity = 0.5f; eyeshadow.style = EyeshadowStyle.Glam
                 eyeliner.enabled = true; eyeliner.intensity = 0.45f; eyeliner.style = EyelinerStyle.Flick
                 eyelashes.enabled = true; eyelashes.intensity = 0.55f; eyelashes.style = LashStyle.Lifted
                 lipstick.enabled = true; lipstick.intensity = 0.62f
@@ -274,9 +298,7 @@ data class MakeupParameters(
                 contour.enabled = true; contour.intensity = 0.48f
                 highlight.enabled = true; highlight.intensity = 0.58f
                 eyebrow.enabled = true; eyebrow.intensity = 0.7f; eyebrow.style = BrowStyle.BoldArch
-                eyeshadow.enabled = true; eyeshadow.intensity = 0.72f
-                eyeshadow.lidColor.set(0.25f, 0.10f, 0.28f)
-                eyeshadow.creaseColor.set(0.08f, 0.04f, 0.10f)
+                eyeshadow.enabled = true; eyeshadow.intensity = 0.72f; eyeshadow.style = EyeshadowStyle.Smokey
                 eyeliner.enabled = true; eyeliner.intensity = 0.85f; eyeliner.style = EyelinerStyle.CatEye
                 eyelashes.enabled = true; eyelashes.intensity = 0.85f; eyelashes.style = LashStyle.FullFan
                 lipstick.enabled = true; lipstick.intensity = 0.8f; lipstick.opacity = 0.88f

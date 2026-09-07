@@ -20,9 +20,11 @@ import com.aurafx.sdk.AuraFxSession
 import com.aurafx.sdk.api.AuraFxError
 import com.aurafx.sdk.api.AuraFxResult
 import com.aurafx.sdk.api.AuraFxSessionListener
+import com.aurafx.sdk.api.BackgroundTray
 import com.aurafx.sdk.api.BlushStyle
 import com.aurafx.sdk.api.BrowStyle
 import com.aurafx.sdk.api.EyelinerStyle
+import com.aurafx.sdk.api.EyeshadowStyle
 import com.aurafx.sdk.api.HairColorId
 import com.aurafx.sdk.api.LashStyle
 import com.aurafx.sdk.api.LensStyle
@@ -30,6 +32,9 @@ import com.aurafx.sdk.api.LipLook
 import com.aurafx.sdk.api.LensFacing
 import com.aurafx.sdk.api.LightingMode
 import com.aurafx.sdk.api.MakeupPreset
+import com.aurafx.sdk.api.MaskTray
+import com.aurafx.sdk.api.label
+import com.aurafx.sdk.api.trayLabel
 import com.aurafx.sdk.api.SessionConfig
 import com.aurafx.studio.databinding.ActivityStudioBinding
 import java.io.File
@@ -45,9 +50,11 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private var userWantsCamera = false
     private var beautyAdvanced = false
 
-    private enum class Category { Beauty, FaceShape, Makeup, Filters, Background, Hair, Body, Lighting, AR }
+    private enum class Category { Beauty, FaceShape, Makeup, Filters, Background, Hair, Body, Lighting, Masks }
 
     private var category = Category.Beauty
+    private var maskTray = com.aurafx.sdk.api.MaskTray.New
+    private var bgTray = com.aurafx.sdk.api.BackgroundTray.Orbit360
 
     private val metricsTicker = object : Runnable {
         override fun run() {
@@ -335,6 +342,13 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
                     target.makeup { eyelashes.enabled = true; eyelashes.style = next; eyelashes.intensity = eyelashes.intensity.coerceAtLeast(0.4f) }
                     bindCategory(target)
                 }
+                action("Next shadow") {
+                    val styles = EyeshadowStyle.entries
+                    val cur = target.makeupParameters().eyeshadow.style
+                    val next = styles[(styles.indexOf(cur) + 1) % styles.size]
+                    target.makeup { eyeshadow.enabled = true; eyeshadow.style = next; eyeshadow.intensity = eyeshadow.intensity.coerceAtLeast(0.4f) }
+                    bindCategory(target)
+                }
                 action("Next lens") {
                     val styles = LensStyle.entries
                     val cur = target.makeupParameters().lens.style
@@ -345,7 +359,7 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 val m = target.makeupParameters()
                 label("Blush ${m.blush.style}  Lip ${m.lipstick.look}")
                 label("Brow ${m.eyebrow.style}  Liner ${m.eyeliner.style}")
-                label("Lash ${m.eyelashes.style}  Lens ${m.lens.style}")
+                label("Shadow ${m.eyeshadow.style}  Lash ${m.eyelashes.style}  Lens ${m.lens.style}")
                 slider("Lipstick", { target.makeupParameters().lipstick.intensity }) { v ->
                     target.makeup { lipstick.enabled = v > 0f; lipstick.intensity = v }
                 }
@@ -369,15 +383,21 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 action("Clear filter") { target.clearFilter(); bindCategory(target) }
             }
             Category.Background -> {
-                action("Next background") {
-                    val ids = target.backgroundCatalog().map { it.id }
+                action("Next tray") {
+                    val trays = BackgroundTray.entries
+                    bgTray = trays[(trays.indexOf(bgTray) + 1) % trays.size]
+                    bindCategory(target)
+                }
+                val inTray = target.backgroundCatalog().filter { it.tray == bgTray }.ifEmpty { target.backgroundCatalog() }
+                action("Next in ${bgTray.trayLabel()}") {
+                    val ids = inTray.map { it.id }
                     val idx = ids.indexOf(target.backgroundParameters().id)
                     target.background { enabled = true; id = ids[(idx + 1 + ids.size) % ids.size]; intensity = 0.75f }
                     bindCategory(target)
                 }
-                label("Current ${target.backgroundParameters().id ?: "none"}")
+                label("Tray ${bgTray.trayLabel()}  ${target.backgroundCatalog().firstOrNull { it.id == target.backgroundParameters().id }?.displayName ?: "none"}")
                 slider("Intensity", { target.backgroundParameters().intensity }) { v ->
-                    val id = target.backgroundParameters().id ?: target.backgroundCatalog().first().id
+                    val id = target.backgroundParameters().id ?: inTray.first().id
                     target.background { enabled = true; this.id = id; intensity = v }
                 }
                 action("Reset background") { target.resetBackground(); bindCategory(target) }
@@ -403,8 +423,9 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 action("Reset hair") { target.resetHair(); bindCategory(target) }
             }
             Category.Body -> {
-                slider("Slim", { target.bodyParameters().slim }) { v -> target.body { enabled = v > 0f; slim = v } }
+                slider("Hips", { target.bodyParameters().hips }) { v -> target.body { enabled = v > 0f; hips = v } }
                 slider("Waist", { target.bodyParameters().waist }) { v -> target.body { enabled = v > 0f; waist = v } }
+                slider("Slim", { target.bodyParameters().slim }) { v -> target.body { enabled = v > 0f; slim = v } }
                 slider("Shoulders", { target.bodyParameters().shoulders }) { v -> target.body { enabled = v > 0f; shoulders = v } }
                 action("Reset body") { target.resetBody(); bindCategory(target) }
             }
@@ -415,25 +436,31 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
                     target.lighting { enabled = true; mode = next; intensity = 0.5f }
                     bindCategory(target)
                 }
-                label("Mode ${target.lightingParameters().mode}")
+                label("Mode ${target.lightingParameters().mode.label()}")
                 slider("Intensity", { target.lightingParameters().intensity }) { v ->
                     target.lighting { enabled = v > 0f; intensity = v }
                 }
                 action("Reset lighting") { target.resetLighting(); bindCategory(target) }
             }
-            Category.AR -> {
-                action("Next AR") {
-                    val ids = target.arCatalog().map { it.id }
+            Category.Masks -> {
+                action("Next tray") {
+                    val trays = MaskTray.entries
+                    maskTray = trays[(trays.indexOf(maskTray) + 1) % trays.size]
+                    bindCategory(target)
+                }
+                val inTray = target.arCatalog().filter { it.tray == maskTray }.ifEmpty { target.arCatalog() }
+                action("Next in ${maskTray.trayLabel()}") {
+                    val ids = inTray.map { it.id }
                     val idx = ids.indexOf(target.arParameters().effectId)
                     target.setAREffect(ids[(idx + 1 + ids.size) % ids.size], 0.85f)
                     bindCategory(target)
                 }
-                label("AR ${target.arParameters().effectId ?: "none"}")
+                label("${maskTray.trayLabel()}  ${target.arCatalog().firstOrNull { it.id == target.arParameters().effectId }?.displayName ?: "none"}")
                 slider("Intensity", { target.arParameters().intensity }) { v ->
-                    val id = target.arParameters().effectId ?: target.arCatalog().first().id
+                    val id = target.arParameters().effectId ?: inTray.first().id
                     target.setAREffect(id, v)
                 }
-                action("Clear AR") { target.clearAREffect(); bindCategory(target) }
+                action("Clear mask") { target.clearAREffect(); bindCategory(target) }
             }
         }
     }

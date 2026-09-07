@@ -68,6 +68,7 @@ uniform vec3 uHighCol;
 uniform float uBrow;
 uniform vec3 uBrowCol;
 uniform float uShadow;
+uniform int uShadowStyle;
 uniform vec3 uLidCol;
 uniform vec3 uCreaseCol;
 uniform float uLiner;
@@ -147,7 +148,11 @@ void main() {
 
   float crease = lids * (1.0 - irisM);
   vec3 sh = mix(uLidCol, uCreaseCol, smoothstep(0.15, 0.85, lids));
-  col = mix(col, overlay(col, sh), uShadow * crease * 0.7);
+  float lidAmt = 0.7;
+  if (uShadowStyle == 1) lidAmt = 0.92;
+  if (uShadowStyle == 4) lidAmt = 0.45;
+  if (uShadowStyle == 5) lidAmt = 0.85;
+  col = mix(col, overlay(col, sh), uShadow * crease * lidAmt);
 
   col = mix(col, uLinerCol, uLiner * linerM * 0.92);
   col = mix(col, uLashCol, uLash * lashM * 0.9);
@@ -161,6 +166,9 @@ void main() {
     float om = smoothstep(0.15, 0.85, lips);
     vec3 inner = uLipCol * vec3(0.55, 0.35, 0.40);
     lip = mix(lip, overlay(lip, inner), om * 0.7);
+  } else if (uLipLook == 3) {
+    lip = mix(lip, uLipCol, 0.22);
+    lip *= 0.88;
   } else {
     lip = mix(lip, lip + vec3(0.10, 0.06, 0.06), 0.25);
   }
@@ -182,7 +190,7 @@ void main() {
 
     fun requiredUniforms(): List<String> = listOf(
         "uFoundation", "uConcealer", "uBlush", "uContour", "uHighlight",
-        "uBrow", "uShadow", "uLiner", "uLash", "uLip", "uLipLook", "uLipLiner", "uGloss", "uLens",
+        "uBrow", "uShadow", "uShadowStyle", "uLiner", "uLash", "uLip", "uLipLook", "uLipLiner", "uGloss", "uLens",
         "uMaskA", "uMaskB", "uStamps",
     )
 }

@@ -18,7 +18,42 @@ enum class HairStyleCapability {
 }
 
 enum class LightingMode {
-    Soft, Directional, Warm, Cool, Natural,
+    Soft, Directional, Warm, Cool, Natural, DayLight, NeonLight, TheatricalLight,
+}
+
+fun LightingMode.label(): String = when (this) {
+    LightingMode.DayLight -> "Day Light"
+    LightingMode.NeonLight -> "Neon Light"
+    LightingMode.TheatricalLight -> "Theatrical Light"
+    else -> name
+}
+
+enum class BackgroundTray {
+    Studio,
+    Orbit360,
+    Glow,
+    Patterns,
+    Blur,
+    Signature,
+    Anime,
+    AnimalPrint,
+    Nature,
+    Scenery,
+    Rooms,
+}
+
+fun BackgroundTray.trayLabel(): String = when (this) {
+    BackgroundTray.Orbit360 -> "360°"
+    BackgroundTray.Glow -> "GLOW"
+    BackgroundTray.Patterns -> "PATTERNS"
+    BackgroundTray.Blur -> "BLUR"
+    BackgroundTray.Signature -> "SIGNATURE"
+    BackgroundTray.Anime -> "ANIME"
+    BackgroundTray.AnimalPrint -> "ANIMAL PRINT"
+    BackgroundTray.Nature -> "NATURE"
+    BackgroundTray.Scenery -> "SCENERY"
+    BackgroundTray.Rooms -> "ROOMS"
+    BackgroundTray.Studio -> "STUDIO"
 }
 
 data class BackgroundParameters(
@@ -89,6 +124,7 @@ data class BodyParameters(
     var enabled: Boolean = false,
     var slim: Float = 0f,
     var waist: Float = 0f,
+    var hips: Float = 0f,
     var shoulders: Float = 0f,
     var legs: Float = 0f,
     var arms: Float = 0f,
@@ -97,6 +133,7 @@ data class BodyParameters(
     fun clampInPlace() {
         slim = clamp01(slim.finiteOr(0f))
         waist = clamp01(waist.finiteOr(0f))
+        hips = clamp01(hips.finiteOr(0f))
         shoulders = clamp01(shoulders.finiteOr(0f))
         legs = clamp01(legs.finiteOr(0f))
         arms = clamp01(arms.finiteOr(0f))
@@ -104,12 +141,14 @@ data class BodyParameters(
     }
 
     fun isIdentity(): Boolean =
-        !enabled || (slim == 0f && waist == 0f && shoulders == 0f && legs == 0f && arms == 0f && torso == 0f)
+        !enabled || (slim == 0f && waist == 0f && hips == 0f && shoulders == 0f &&
+            legs == 0f && arms == 0f && torso == 0f)
 
     fun reset() {
         enabled = false
         slim = 0f
         waist = 0f
+        hips = 0f
         shoulders = 0f
         legs = 0f
         arms = 0f

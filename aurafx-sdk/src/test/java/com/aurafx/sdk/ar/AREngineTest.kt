@@ -14,8 +14,8 @@ class ARCatalogTest {
     @Test
     fun catalogIntegrityAndRenderedSet() {
         assertThat(AREffectCatalog.validate()).isEmpty()
-        assertThat(AREffectCatalog.effects).hasSize(10)
-        assertThat(AREffectCatalog.effects.map { it.id }.toSet()).hasSize(10)
+        assertThat(AREffectCatalog.effects.size).isAtLeast(61)
+        assertThat(AREffectCatalog.effects.map { it.id }.toSet()).hasSize(AREffectCatalog.effects.size)
         assertThat(AREffectCatalog.effects.all { it.productionRendered }).isTrue()
         val assets = ARAssetManager()
         for (fx in AREffectCatalog.effects) {

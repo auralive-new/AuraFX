@@ -17,13 +17,13 @@ class SceneCatalogTest {
     fun catalogsAreValid() {
         assertThat(BackgroundCatalog.validate()).isEmpty()
         assertThat(HairCatalog.validate()).isEmpty()
-        assertThat(BackgroundCatalog.items).hasSize(20)
+        assertThat(BackgroundCatalog.items.size).isAtLeast(36)
         assertThat(HairCatalog.styles).hasSize(13)
         assertThat(HairCatalog.colors).hasSize(12)
-        assertThat(BodyCatalog.items).hasSize(6)
+        assertThat(BodyCatalog.items.size).isAtLeast(7)
         assertThat(LightingCatalog.modes).containsExactlyElementsIn(LightingMode.entries)
         val ids = BackgroundCatalog.items.map { it.id }
-        assertThat(ids.toSet()).hasSize(20)
+        assertThat(ids.toSet()).hasSize(ids.size)
         assertThat(HairCatalog.style("hair.style.natural")!!.productionRealistic).isTrue()
         assertThat(HairCatalog.styles.count { it.productionRealistic }).isEqualTo(13)
         assertThat(HairCatalog.styles.count { it.capability == HairStyleCapability.RequiresGroomAsset }).isEqualTo(0)

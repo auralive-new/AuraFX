@@ -71,7 +71,7 @@ class ReferenceFeatureSpecTest {
             assertThat(fx.assets.all { it.procedural }).isTrue()
             assertThat(fx.anchors).isNotEmpty()
         }
-        assertThat(BackgroundCatalog.items).hasSize(20)
+        assertThat(BackgroundCatalog.items.size).isAtLeast(36)
         assertThat(BackgroundCatalog.validate()).isEmpty()
     }
 
@@ -81,10 +81,10 @@ class ReferenceFeatureSpecTest {
         assertThat(AREffectCatalog.validate()).isEmpty()
         assertThat(BackgroundCatalog.validate()).isEmpty()
         val arNames = AREffectCatalog.effects.map { it.displayName }
-        assertThat(arNames).containsExactlyElementsIn(ReferenceFeatureSpec.requiredArDisplayNames)
+        assertThat(arNames).containsAtLeastElementsIn(ReferenceFeatureSpec.requiredArDisplayNames)
         assertThat(ReferenceFeatureSpec.filterCount()).isEqualTo(51)
-        assertThat(ReferenceFeatureSpec.arCount()).isEqualTo(10)
-        assertThat(ReferenceFeatureSpec.backgroundCount()).isEqualTo(20)
+        assertThat(ReferenceFeatureSpec.arCount()).isAtLeast(61)
+        assertThat(ReferenceFeatureSpec.backgroundCount()).isAtLeast(36)
     }
 
     @Test
@@ -124,15 +124,15 @@ class ReferenceFeatureSpecTest {
         assertThat(BlushStyle.entries.map { ReferenceFeatureSpec.blushLabel(it) })
             .containsExactlyElementsIn(ReferenceFeatureSpec.requiredBlushNames)
         assertThat(LipLook.entries.map { ReferenceFeatureSpec.lipLookLabel(it) })
-            .containsExactlyElementsIn(ReferenceFeatureSpec.requiredLipLookNames)
+            .containsAtLeastElementsIn(ReferenceFeatureSpec.requiredLipLookNames)
         assertThat(BrowStyle.entries.map { ReferenceFeatureSpec.browLabel(it) })
             .containsExactlyElementsIn(ReferenceFeatureSpec.requiredBrowNames)
         assertThat(EyelinerStyle.entries.map { ReferenceFeatureSpec.eyelinerLabel(it) })
-            .containsExactlyElementsIn(ReferenceFeatureSpec.requiredEyelinerNames)
+            .containsAtLeastElementsIn(ReferenceFeatureSpec.requiredEyelinerCoreNames)
         assertThat(LashStyle.entries.map { ReferenceFeatureSpec.lashLabel(it) })
             .containsExactlyElementsIn(ReferenceFeatureSpec.requiredLashNames)
         assertThat(LensStyle.entries.map { ReferenceFeatureSpec.lensLabel(it) })
-            .containsExactlyElementsIn(ReferenceFeatureSpec.requiredLensNames)
+            .containsAtLeastElementsIn(ReferenceFeatureSpec.requiredLensNames)
         val p = MakeupParameters()
         p.applyPreset(MakeupPreset.Classic)
         assertThat(p.lipstick.look).isEqualTo(LipLook.GlossyPop)

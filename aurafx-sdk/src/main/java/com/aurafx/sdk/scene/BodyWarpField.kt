@@ -53,12 +53,14 @@ object BodyWarpField {
                 if (p != null && !snap.isIdentity()) {
                     dx += inward(u, v, p, PoseIndex.LEFT_HIP, PoseIndex.RIGHT_HIP, snap.slim * 0.10f, midX, 0.12f)
                     dx += inward(u, v, p, PoseIndex.LEFT_HIP, PoseIndex.RIGHT_HIP, snap.waist * 0.14f, midX, 0.08f)
+                    val hipY = (ly(p, PoseIndex.LEFT_HIP) + ly(p, PoseIndex.RIGHT_HIP)) * 0.5f
+                    dx += inward(u, v, p, PoseIndex.LEFT_HIP, PoseIndex.RIGHT_HIP, snap.hips * 0.16f, midX, 0.11f)
+                    dy += (v - hipY) * -0.04f * snap.hips * gauss(u - midX, v - hipY, 0.12f)
                     val sh = (lx(p, PoseIndex.LEFT_SHOULDER) + lx(p, PoseIndex.RIGHT_SHOULDER)) * 0.5f
                     dx += inward(u, v, p, PoseIndex.LEFT_SHOULDER, PoseIndex.RIGHT_SHOULDER, snap.shoulders * 0.10f, sh, 0.10f)
                     dx += inward(u, v, p, PoseIndex.LEFT_KNEE, PoseIndex.RIGHT_KNEE, snap.legs * 0.09f, midX, 0.14f)
                     dx += armIn(u, v, p, true, snap.arms * 0.06f)
                     dx += armIn(u, v, p, false, snap.arms * 0.06f)
-                    val hipY = (ly(p, PoseIndex.LEFT_HIP) + ly(p, PoseIndex.RIGHT_HIP)) * 0.5f
                     val shY = (ly(p, PoseIndex.LEFT_SHOULDER) + ly(p, PoseIndex.RIGHT_SHOULDER)) * 0.5f
                     val torsoW = gauss(u - midX, v - (shY + hipY) * 0.5f, 0.16f)
                     dy += (hipY - v) * 0.06f * snap.torso * torsoW

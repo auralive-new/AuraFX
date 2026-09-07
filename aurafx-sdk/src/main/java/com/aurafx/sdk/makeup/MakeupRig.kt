@@ -31,6 +31,7 @@ class MakeupRig {
             highlight = params.highlight.copy(color = params.highlight.color.copy()),
             eyebrow = params.eyebrow.copy(color = params.eyebrow.color.copy()),
             eyeshadow = params.eyeshadow.copy(
+                style = params.eyeshadow.style,
                 lidColor = params.eyeshadow.lidColor.copy(),
                 creaseColor = params.eyeshadow.creaseColor.copy(),
             ),

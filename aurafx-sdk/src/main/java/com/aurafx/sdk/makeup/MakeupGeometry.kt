@@ -94,7 +94,7 @@ object MakeupGeometryBuilder {
     }
 
     fun browWidth(style: BrowStyle, scale: Float): Float = scale * when (style) {
-        BrowStyle.BoldArch, BrowStyle.Full -> 0.055f
+        BrowStyle.BoldArch, BrowStyle.FullDefinition -> 0.055f
         BrowStyle.Feathered, BrowStyle.Natural -> 0.038f
         BrowStyle.Flat, BrowStyle.SoftCurve -> 0.034f
         BrowStyle.Angled -> 0.042f

@@ -12,6 +12,26 @@ enum class ARCategory {
     Animated,
 }
 
+enum class MaskTray {
+    New,
+    Earrings,
+    Ears,
+    Trendy,
+    Funny,
+    Fantasy,
+    Original,
+}
+
+fun MaskTray.trayLabel(): String = when (this) {
+    MaskTray.New -> "NEW"
+    MaskTray.Earrings -> "EARRINGS"
+    MaskTray.Ears -> "EARS"
+    MaskTray.Trendy -> "TRENDY"
+    MaskTray.Funny -> "FUNNY"
+    MaskTray.Fantasy -> "FANTASY"
+    MaskTray.Original -> "ORIGINAL"
+}
+
 enum class AROcclusionMode {
     None,
     HairOccludes,

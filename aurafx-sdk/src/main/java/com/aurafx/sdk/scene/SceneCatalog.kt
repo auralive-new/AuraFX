@@ -1,5 +1,6 @@
 package com.aurafx.sdk.scene
 
+import com.aurafx.sdk.api.BackgroundTray
 import com.aurafx.sdk.api.BackgroundType
 import com.aurafx.sdk.api.HairColorId
 import com.aurafx.sdk.api.HairStyleCapability
@@ -12,6 +13,7 @@ data class BackgroundDefinition(
     val shaderMode: Int,
     val colorA: FloatArray,
     val colorB: FloatArray,
+    val tray: BackgroundTray = BackgroundTray.Studio,
     val compatibleWithFilters: Boolean = true,
     val imageAsset: String? = null,
 )
@@ -62,6 +64,52 @@ object BackgroundCatalog {
         bg("bg.env.studio_blue", "Studio Blue", BackgroundType.Gradient, 3, floatArrayOf(0.15f, 0.28f, 0.55f), floatArrayOf(0.04f, 0.08f, 0.16f)),
         bg("bg.env.spotlight", "Spotlight Falloff", BackgroundType.ProceduralEnvironment, 9, c(0.9f), c(0.05f)),
         bg("bg.env.paper_warm", "Warm Paper", BackgroundType.ProceduralEnvironment, 4, floatArrayOf(0.86f, 0.78f, 0.62f), floatArrayOf(0.62f, 0.52f, 0.38f)),
+
+        bg("bg.orbit.aurora_view", "Aurora View", BackgroundType.ProceduralEnvironment, 10, floatArrayOf(0.25f, 0.95f, 0.55f), floatArrayOf(0.08f, 0.12f, 0.35f), BackgroundTray.Orbit360),
+        bg("bg.orbit.sun_drift", "Sun Drift", BackgroundType.ProceduralEnvironment, 11, floatArrayOf(1.0f, 0.72f, 0.28f), floatArrayOf(0.35f, 0.22f, 0.45f), BackgroundTray.Orbit360),
+        bg("bg.orbit.rainy_street", "Rainy Street", BackgroundType.ProceduralEnvironment, 12, floatArrayOf(0.45f, 0.52f, 0.62f), floatArrayOf(0.08f, 0.09f, 0.12f), BackgroundTray.Orbit360),
+
+        bg("bg.glow.cosmic_light", "Cosmic Light", BackgroundType.ProceduralEnvironment, 13, floatArrayOf(0.65f, 0.35f, 1.0f), floatArrayOf(0.05f, 0.02f, 0.12f), BackgroundTray.Glow),
+
+        bg("bg.pat.cherry_pop", "Cherry Pop", BackgroundType.ProceduralEnvironment, 14, floatArrayOf(0.95f, 0.22f, 0.42f), floatArrayOf(0.35f, 0.05f, 0.12f), BackgroundTray.Patterns),
+        bg("bg.pat.love_clouds", "Love Clouds", BackgroundType.ProceduralEnvironment, 14, floatArrayOf(1.0f, 0.55f, 0.72f), floatArrayOf(0.55f, 0.35f, 0.55f), BackgroundTray.Patterns),
+        bg("bg.pat.neon_clouds", "Neon Clouds", BackgroundType.ProceduralEnvironment, 14, floatArrayOf(0.35f, 0.85f, 1.0f), floatArrayOf(0.55f, 0.15f, 0.75f), BackgroundTray.Patterns),
+        bg("bg.pat.neon_sweet", "Neon Sweet", BackgroundType.ProceduralEnvironment, 14, floatArrayOf(1.0f, 0.35f, 0.75f), floatArrayOf(0.25f, 0.08f, 0.28f), BackgroundTray.Patterns),
+
+        bg("bg.blur.named", "Blur", BackgroundType.Blur, 0, c(0.22f), c(0.1f), BackgroundTray.Blur),
+        bg("bg.blur.rainy", "Rainy Blur", BackgroundType.ProceduralEnvironment, 15, floatArrayOf(0.42f, 0.48f, 0.55f), floatArrayOf(0.1f, 0.12f, 0.16f), BackgroundTray.Blur),
+
+        bg("bg.sig.neon_room", "Neon Room", BackgroundType.ProceduralEnvironment, 16, floatArrayOf(0.15f, 0.95f, 0.85f), floatArrayOf(0.08f, 0.05f, 0.18f), BackgroundTray.Signature),
+        bg("bg.sig.neon_pattern", "Neon Pattern", BackgroundType.ProceduralEnvironment, 16, floatArrayOf(0.95f, 0.2f, 0.85f), floatArrayOf(0.05f, 0.08f, 0.22f), BackgroundTray.Signature),
+        bg("bg.sig.rhythm", "Rhythm", BackgroundType.ProceduralEnvironment, 16, floatArrayOf(0.95f, 0.55f, 0.12f), floatArrayOf(0.12f, 0.05f, 0.22f), BackgroundTray.Signature),
+        bg("bg.sig.golden_pattern", "Golden Pattern", BackgroundType.ProceduralEnvironment, 16, floatArrayOf(0.95f, 0.78f, 0.22f), floatArrayOf(0.28f, 0.16f, 0.05f), BackgroundTray.Signature),
+        bg("bg.sig.comics_kiss", "Comics Kiss", BackgroundType.ProceduralEnvironment, 16, floatArrayOf(0.95f, 0.15f, 0.35f), floatArrayOf(0.15f, 0.05f, 0.22f), BackgroundTray.Signature),
+        bg("bg.sig.stage_lights", "Stage Lights", BackgroundType.ProceduralEnvironment, 13, floatArrayOf(1.0f, 0.85f, 0.35f), floatArrayOf(0.05f, 0.04f, 0.08f), BackgroundTray.Signature),
+        bg("bg.sig.pink_swirls", "Pink Swirls", BackgroundType.ProceduralEnvironment, 16, floatArrayOf(1.0f, 0.45f, 0.72f), floatArrayOf(0.35f, 0.08f, 0.28f), BackgroundTray.Signature),
+
+        bg("bg.anime.city_sunset", "City Sunset", BackgroundType.ProceduralEnvironment, 6, floatArrayOf(0.98f, 0.42f, 0.22f), floatArrayOf(0.18f, 0.08f, 0.32f), BackgroundTray.Anime),
+        bg("bg.anime.ocean_sunset", "Ocean Sunset", BackgroundType.ProceduralEnvironment, 6, floatArrayOf(0.98f, 0.55f, 0.28f), floatArrayOf(0.08f, 0.18f, 0.38f), BackgroundTray.Anime),
+
+        bg("bg.animal.cartoonish_leopard", "Cartoonish Leopard", BackgroundType.ProceduralEnvironment, 17, floatArrayOf(0.85f, 0.62f, 0.28f), floatArrayOf(0.22f, 0.12f, 0.06f), BackgroundTray.AnimalPrint),
+        bg("bg.animal.animal_love", "Animal Love", BackgroundType.ProceduralEnvironment, 17, floatArrayOf(0.92f, 0.45f, 0.35f), floatArrayOf(0.28f, 0.12f, 0.1f), BackgroundTray.AnimalPrint),
+        bg("bg.animal.snake_skin", "Snake Skin", BackgroundType.ProceduralEnvironment, 17, floatArrayOf(0.35f, 0.55f, 0.28f), floatArrayOf(0.08f, 0.12f, 0.08f), BackgroundTray.AnimalPrint),
+
+        bg("bg.nature.forest", "Forest", BackgroundType.ProceduralEnvironment, 18, floatArrayOf(0.28f, 0.55f, 0.18f), floatArrayOf(0.05f, 0.12f, 0.06f), BackgroundTray.Nature),
+        bg("bg.nature.jungle", "Jungle", BackgroundType.ProceduralEnvironment, 18, floatArrayOf(0.18f, 0.48f, 0.16f), floatArrayOf(0.04f, 0.1f, 0.05f), BackgroundTray.Nature),
+        bg("bg.nature.desert", "Desert", BackgroundType.ProceduralEnvironment, 18, floatArrayOf(0.92f, 0.68f, 0.32f), floatArrayOf(0.45f, 0.28f, 0.12f), BackgroundTray.Nature),
+        bg("bg.nature.sea", "Sea", BackgroundType.ProceduralEnvironment, 18, floatArrayOf(0.22f, 0.62f, 0.78f), floatArrayOf(0.04f, 0.12f, 0.28f), BackgroundTray.Nature),
+
+        bg("bg.scenery.sunset_beach", "Sunset Beach", BackgroundType.ProceduralEnvironment, 6, floatArrayOf(0.98f, 0.52f, 0.28f), floatArrayOf(0.22f, 0.28f, 0.55f), BackgroundTray.Scenery),
+
+        bg("bg.rooms.white_canopy", "White Canopy", BackgroundType.ProceduralEnvironment, 19, c(0.92f), floatArrayOf(0.72f, 0.74f, 0.78f), BackgroundTray.Rooms),
+        bg("bg.rooms.wardrobe", "Wardrobe", BackgroundType.ProceduralEnvironment, 19, floatArrayOf(0.42f, 0.28f, 0.18f), floatArrayOf(0.12f, 0.08f, 0.06f), BackgroundTray.Rooms),
+        bg("bg.rooms.canopy_bed_interior", "Canopy Bed Interior", BackgroundType.ProceduralEnvironment, 19, floatArrayOf(0.85f, 0.55f, 0.72f), floatArrayOf(0.18f, 0.1f, 0.28f), BackgroundTray.Rooms),
+        bg("bg.rooms.gothic_interior", "Gothic Interior", BackgroundType.ProceduralEnvironment, 19, floatArrayOf(0.35f, 0.12f, 0.18f), floatArrayOf(0.05f, 0.03f, 0.06f), BackgroundTray.Rooms),
+        bg("bg.rooms.luxurious_bathroom", "Luxurious Bathroom", BackgroundType.ProceduralEnvironment, 19, floatArrayOf(0.78f, 0.85f, 0.88f), floatArrayOf(0.35f, 0.42f, 0.48f), BackgroundTray.Rooms),
+        bg("bg.rooms.neon_lounge", "Neon Lounge", BackgroundType.ProceduralEnvironment, 16, floatArrayOf(0.35f, 0.95f, 0.85f), floatArrayOf(0.08f, 0.04f, 0.16f), BackgroundTray.Rooms),
+        bg("bg.rooms.romantic_velvet_corner", "Romantic Velvet Corner", BackgroundType.ProceduralEnvironment, 19, floatArrayOf(0.55f, 0.08f, 0.18f), floatArrayOf(0.12f, 0.03f, 0.06f), BackgroundTray.Rooms),
+        bg("bg.rooms.satin_bed_rose_petals", "Satin Bed with Rose Petals", BackgroundType.ProceduralEnvironment, 19, floatArrayOf(0.92f, 0.45f, 0.55f), floatArrayOf(0.35f, 0.12f, 0.18f), BackgroundTray.Rooms),
+        bg("bg.rooms.blue_armchair", "Blue Armchair", BackgroundType.ProceduralEnvironment, 19, floatArrayOf(0.22f, 0.38f, 0.72f), floatArrayOf(0.08f, 0.1f, 0.22f), BackgroundTray.Rooms),
     )
     val byId = items.associateBy { it.id }
     fun require(id: String) = byId[id]
@@ -78,8 +126,17 @@ object BackgroundCatalog {
         }
         return e
     }
-    private fun bg(id: String, name: String, type: BackgroundType, mode: Int, a: FloatArray, b: FloatArray) =
-        BackgroundDefinition(id, name, type, mode, a, b)
+    fun inTray(tray: BackgroundTray) = items.filter { it.tray == tray }
+
+    private fun bg(
+        id: String,
+        name: String,
+        type: BackgroundType,
+        mode: Int,
+        a: FloatArray,
+        b: FloatArray,
+        tray: BackgroundTray = BackgroundTray.Studio,
+    ) = BackgroundDefinition(id, name, type, mode, a, b, tray)
     private fun c(v: Float) = floatArrayOf(v, v, v)
 }
 
@@ -155,6 +212,7 @@ object BodyCatalog {
     val items: List<BodyTransformDefinition> = listOf(
         BodyTransformDefinition("body.slim", "Slim", "torso-hips", "slim", 0.35f),
         BodyTransformDefinition("body.waist", "Waist", "waist", "waist", 0.32f),
+        BodyTransformDefinition("body.hips", "Hips", "hips", "hips", 0.34f),
         BodyTransformDefinition("body.shoulders", "Shoulders", "shoulders", "shoulders", 0.28f),
         BodyTransformDefinition("body.legs", "Legs", "thighs-calves", "legs", 0.28f),
         BodyTransformDefinition("body.arms", "Arms", "upper-arm", "arms", 0.18f),

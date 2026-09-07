@@ -97,6 +97,66 @@ vec3 procedural(vec2 uv) {
     float light = smoothstep(0.86, 0.99, w);
     return night + uColorA * light * 0.8;
   }
+  if (uMode == 10) {
+    float band = 0.5 + 0.5 * sin(uv.x * 9.0 + uv.y * 6.0);
+    vec3 aurora = mix(uColorB, uColorA, band);
+    return aurora + uColorA * smoothstep(0.25, 0.85, 1.0 - uv.y) * 0.25;
+  }
+  if (uMode == 11) {
+    vec3 sky = mix(uColorB, uColorA, pow(1.0 - uv.y, 1.2));
+    float sun = smoothstep(0.22, 0.0, distance(uv, vec2(0.72, 0.18)));
+    return sky + vec3(1.0, 0.82, 0.45) * sun * 0.55;
+  }
+  if (uMode == 12) {
+    vec3 wet = mix(uColorB, uColorA, uv.y);
+    float streak = smoothstep(0.82, 0.98, hash(vec2(floor(uv.x * 40.0), fract(uv.y * 18.0))));
+    return wet + vec3(0.12) * streak;
+  }
+  if (uMode == 13) {
+    float r = distance(uv, vec2(0.5, 0.35));
+    return mix(uColorA, uColorB, smoothstep(0.0, 0.85, r)) + uColorA * (1.0 - smoothstep(0.0, 0.25, r)) * 0.35;
+  }
+  if (uMode == 14) {
+    vec2 g = abs(fract(uv * 10.0) - 0.5);
+    float grid = 1.0 - smoothstep(0.02, 0.1, min(g.x, g.y));
+    vec3 cloud = uColorA * smoothstep(0.4, 0.9, hash(floor(uv * vec2(7.0, 5.0))));
+    return mix(uColorB, uColorA * 0.45, uv.y) + cloud * 0.45 + uColorA * grid * 0.25;
+  }
+  if (uMode == 15) {
+    vec3 acc = vec3(0.0);
+    float wsum = 0.0;
+    for (int i = -3; i <= 3; i++) {
+      for (int j = -3; j <= 3; j++) {
+        vec2 o = vec2(float(i), float(j)) * uTexel * 3.8;
+        float wp = 1.0 - texture(uMask, uv + o).r;
+        acc += texture(uImage, uv + o).rgb * wp;
+        wsum += wp;
+      }
+    }
+    vec3 blur = acc / max(wsum, 0.08);
+    float streak = smoothstep(0.8, 0.98, hash(vec2(floor(uv.x * 36.0), fract(uv.y * 20.0))));
+    return mix(blur, uColorA, 0.15) + vec3(0.1) * streak;
+  }
+  if (uMode == 16) {
+    float swirl = 0.5 + 0.5 * sin((uv.x + uv.y) * 14.0);
+    float neon = smoothstep(0.35, 0.9, hash(floor(uv * 16.0)));
+    return mix(uColorB, uColorA, swirl) * (0.55 + 0.45 * neon);
+  }
+  if (uMode == 17) {
+    vec2 p = uv * vec2(11.0, 8.0);
+    float spots = smoothstep(0.38, 0.12, length(fract(p) - 0.5));
+    return mix(uColorA, uColorB, spots);
+  }
+  if (uMode == 18) {
+    float canopy = smoothstep(0.0, 0.45, uv.y);
+    float leaf = hash(floor(uv * vec2(14.0, 10.0)));
+    return mix(uColorA, uColorB, canopy) + uColorA * smoothstep(0.7, 1.0, leaf) * 0.12;
+  }
+  if (uMode == 19) {
+    float window = smoothstep(0.05, 0.0, abs(uv.x - 0.5) - 0.18) * smoothstep(0.55, 0.95, 1.0 - uv.y);
+    vec3 room = mix(uColorB, uColorA, 1.0 - uv.y);
+    return mix(room, uColorA * 1.15, window * 0.45);
+  }
   float r = distance(uv, vec2(0.5, 0.42));
   return mix(uColorA, uColorB, smoothstep(0.05, 0.72, r));
 }
@@ -208,6 +268,22 @@ void main() {
   }
   if (uMode == 4) {
     lit = mix(src, lit, 0.7);
+  }
+  if (uMode == 5) {
+    lit += vec3(0.08, 0.07, 0.05);
+    lit.r *= 1.04;
+    lit.b *= 0.97;
+  }
+  if (uMode == 6) {
+    float pulse = 0.5 + 0.5 * sin(vUv.x * 12.0 + vUv.y * 8.0);
+    lit += vec3(0.08, 0.02, 0.12) * pulse;
+    lit.b *= 1.08;
+    lit.r *= 1.04;
+  }
+  if (uMode == 7) {
+    float spot = smoothstep(0.55, 0.05, distance(vUv, vec2(0.5 + uAzimuth * 0.15, 0.32)));
+    lit += vec3(0.16, 0.12, 0.08) * spot;
+    lit *= mix(0.72, 1.08, spot);
   }
   vec3 outc = mix(src, clamp(lit, 0.0, 1.0), clamp(uIntensity, 0.0, 1.0) * subject);
   fragColor = vec4(outc, src4.a);

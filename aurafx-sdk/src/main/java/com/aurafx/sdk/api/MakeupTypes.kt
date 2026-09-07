@@ -23,7 +23,7 @@ enum class MakeupPreset { Classic, Bright, Extravagant }
 
 enum class BlushStyle { SoftTouch, Airbrush, BlushBomb, SunKissed }
 
-enum class BrowStyle { BoldArch, Natural, Feathered, Flat, SoftCurve, Angled, Full }
+enum class BrowStyle { BoldArch, Natural, Feathered, Flat, SoftCurve, Angled, FullDefinition }
 
 enum class EyelinerStyle {
     CatEye, Classic, Glam, Smokey, Goldie, Flick, None, Bold, Retro, Graphic, Winged,
@@ -31,6 +31,10 @@ enum class EyelinerStyle {
 
 enum class LashStyle { NaturalCurl, SoftVolume, Lifted, Defined, DollEyes, FullFan }
 
-enum class LipLook { GlossyPop, Lacquer, Ombre }
+enum class LipLook { Velvet, GlossyPop, Lacquer, Ombre }
 
-enum class LensStyle { PureTone, GoldenGlint, SapphireInk, WarmGlint, KiwiPop, SilverMist }
+enum class EyeshadowStyle { Goldie, CatEye, Classic, Glam, Nude, Smokey }
+
+enum class LensStyle {
+    PureTone, GoldenGlint, SapphireInk, WarmGlint, KiwiPop, SilverMist, AmberGlow, BlueDew,
+}

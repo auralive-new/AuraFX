@@ -52,29 +52,64 @@ object ReferenceFeatureSpec {
     fun backgroundCount(): Int = BackgroundCatalog.items.size
 
     val requiredBlushNames: List<String> = listOf("Soft Touch", "Airbrush", "Blush Bomb", "Sun-Kissed")
-    val requiredLipLookNames: List<String> = listOf("Glossy Pop", "Lacquer", "Ombre")
+    val requiredLipLookNames: List<String> = listOf("Velvet", "Glossy Pop", "Lacquer", "Ombre")
     val requiredBrowNames: List<String> = listOf(
-        "Bold Arch", "Natural", "Feathered", "Flat", "Soft Curve", "Angled", "Full",
+        "Bold Arch", "Natural", "Feathered", "Flat", "Soft Curve", "Angled", "Full Definition",
     )
-    val requiredEyelinerNames: List<String> = listOf(
-        "Cat Eye", "Classic", "Glam", "Smokey", "Goldie", "Flick", "None", "Bold", "Retro", "Graphic", "Winged",
+    val requiredEyeshadowNames: List<String> = listOf(
+        "Goldie", "Cat Eye", "Classic", "Glam", "Nude", "Smokey",
+    )
+    val requiredEyelinerCoreNames: List<String> = listOf(
+        "Flick", "None", "Bold", "Graphic", "Winged", "Retro",
     )
     val requiredLashNames: List<String> = listOf(
         "Natural Curl", "Soft Volume", "Lifted", "Defined", "Doll Eyes", "Full Fan",
     )
     val requiredLensNames: List<String> = listOf(
         "Pure Tone", "Golden Glint", "Sapphire Ink", "Warm Glint", "Kiwi Pop", "Silver Mist",
+        "Amber Glow", "Blue Dew",
     )
+    val requiredBodyNames: List<String> = listOf("Hips", "Waist")
+    val requiredLightingNames: List<String> = listOf("Day Light", "Neon Light", "Theatrical Light")
+    val requiredMaskNames: List<String> = listOf(
+        "Desert Sun", "Solar Flare", "Burning Man",
+        "Aqua Grace",
+        "Golden Link", "Sketchy Beat", "Catwoman", "Spring Cat", "Black Cat", "Snow Kitty",
+        "Meow Mode", "Easter Hop", "Fluffy Hop", "Spring Hop", "Party Hop", "Foxy Mode",
+        "Groovy Cat", "Party Bear",
+        "India Glow", "Pride Paint", "Ultra Fan", "Goal Rush", "Bad Santa", "England", "France",
+        "Patriot Pop", "Freedom Fun", "Mega Mason", "Summer Vibes", "Shell Belle", "Moonlit Glow",
+        "Haji Glow", "PSG Fever", "Arsenal Vibe", "Starman", "Rock King", "Disco Diva",
+        "Fire Princess", "Island Cheers", "Farm Crush", "Spring Aura", "Floral Fantasy",
+        "Blush Pop", "Rave", "Hot Devil", "Pumpkin Doll", "Deadly Bloom", "Sweet Feels",
+        "T-Rex", "Love Lens", "Retro",
+        "Brainy", "Showstopper", "Lucky Charm", "Get Lucky", "Emerald Veil", "Daisy Daze",
+        "Desert Lace", "Winter Bloom", "Masked Meow", "Hippie",
+    )
+    val requiredBackgroundNames: List<String> = listOf(
+        "Aurora View", "Sun Drift", "Rainy Street",
+        "Cosmic Light",
+        "Cherry Pop", "Love Clouds", "Neon Clouds", "Neon Sweet",
+        "Blur", "Rainy Blur",
+        "Neon Room", "Neon Pattern", "Rhythm", "Golden Pattern", "Comics Kiss", "Stage Lights", "Pink Swirls",
+        "City Sunset", "Ocean Sunset",
+        "Cartoonish Leopard", "Animal Love", "Snake Skin",
+        "Forest", "Jungle", "Desert", "Sea",
+        "Sunset Beach",
+        "White Canopy", "Wardrobe", "Canopy Bed Interior", "Gothic Interior", "Luxurious Bathroom",
+        "Neon Lounge", "Romantic Velvet Corner", "Satin Bed with Rose Petals", "Blue Armchair",
+    )
+
     val requiredMakeupPresets: List<String> = listOf("Classic", "Bright", "Extravagant")
 
     fun makeupEnumsPresent(): Boolean =
         MakeupPreset.entries.size == 3 &&
             BlushStyle.entries.size == 4 &&
-            LipLook.entries.size == 3 &&
+            LipLook.entries.size >= 4 &&
             BrowStyle.entries.size == 7 &&
-            EyelinerStyle.entries.size == 11 &&
+            EyelinerStyle.entries.size >= 6 &&
             LashStyle.entries.size == 6 &&
-            LensStyle.entries.size == 6
+            LensStyle.entries.size >= 8
 
     fun blushLabel(style: BlushStyle): String = when (style) {
         BlushStyle.SoftTouch -> "Soft Touch"
@@ -84,6 +119,7 @@ object ReferenceFeatureSpec {
     }
 
     fun lipLookLabel(look: LipLook): String = when (look) {
+        LipLook.Velvet -> "Velvet"
         LipLook.GlossyPop -> "Glossy Pop"
         LipLook.Lacquer -> "Lacquer"
         LipLook.Ombre -> "Ombre"
@@ -96,7 +132,7 @@ object ReferenceFeatureSpec {
         BrowStyle.Flat -> "Flat"
         BrowStyle.SoftCurve -> "Soft Curve"
         BrowStyle.Angled -> "Angled"
-        BrowStyle.Full -> "Full"
+        BrowStyle.FullDefinition -> "Full Definition"
     }
 
     fun eyelinerLabel(style: EyelinerStyle): String = when (style) {
@@ -129,6 +165,17 @@ object ReferenceFeatureSpec {
         LensStyle.WarmGlint -> "Warm Glint"
         LensStyle.KiwiPop -> "Kiwi Pop"
         LensStyle.SilverMist -> "Silver Mist"
+        LensStyle.AmberGlow -> "Amber Glow"
+        LensStyle.BlueDew -> "Blue Dew"
+    }
+
+    fun eyeshadowLabel(style: com.aurafx.sdk.api.EyeshadowStyle): String = when (style) {
+        com.aurafx.sdk.api.EyeshadowStyle.Goldie -> "Goldie"
+        com.aurafx.sdk.api.EyeshadowStyle.CatEye -> "Cat Eye"
+        com.aurafx.sdk.api.EyeshadowStyle.Classic -> "Classic"
+        com.aurafx.sdk.api.EyeshadowStyle.Glam -> "Glam"
+        com.aurafx.sdk.api.EyeshadowStyle.Nude -> "Nude"
+        com.aurafx.sdk.api.EyeshadowStyle.Smokey -> "Smokey"
     }
 
     fun duplicateIds(): List<String> {

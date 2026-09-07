@@ -477,6 +477,9 @@ class LightingPipelineEffect(private val rig: LightingRig) : Effect {
                 LightingMode.Warm -> 2
                 LightingMode.Cool -> 3
                 LightingMode.Natural -> 4
+                LightingMode.DayLight -> 5
+                LightingMode.NeonLight -> 6
+                LightingMode.TheatricalLight -> 7
             },
         )
         GLES30.glUniform1f(program.loc("uBrightness"), snap.brightness)
