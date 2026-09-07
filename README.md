@@ -4,16 +4,16 @@ Standalone Android SDK for a real-time camera → GPU frame pipeline. This repos
 
 Roadmap (locked):
 
-1. **Core + Camera Pipeline** ← this repo / this step
+1. Core + Camera Pipeline
 2. Skin + Beauty + Face Shape
 3. Professional Makeup
-4. Filters
+4. **Filters** ← this step
 5. Background + Hair + Body + Lighting
 6. Complete AR / Effects / Masks
 7. Studio + Video + Performance + QA
 8. AuraLive Integration + Production Release
 
-Step 1 does **not** implement beauty, makeup, filters, background, hair, body, lighting, AR, or effects. Vision types are interfaces only.
+Step 4 implements a GPU `FilterEngine` after makeup/beauty. It does **not** implement background, hair, body, lighting, AR, or AuraLive.
 
 ## Modules
 
@@ -30,7 +30,10 @@ session.beauty { toothWhiten = 0.4f; circles = 0.3f }
 session.faceShape { vFace = 0.2f; eyeEnlarge = 0.15f }
 session.makeup { lipstick { intensity = 0.5f }; eyeliner { style = EyelinerStyle.Classic; intensity = 0.6f } }
 session.applyMakeupPreset(MakeupPreset.Classic)
-
+session.setFilter("warm.golden", 0.65f)
+session.filter { id = "lut.film_warm"; intensity = 0.5f }
+session.clearFilter()
+```
 
 ## Public API
 
@@ -51,7 +54,9 @@ The host app requests `CAMERA`. The SDK checks permission and returns `AuraFxErr
 
 ## Pipeline
 
-CameraX (single bind) → GPU `SurfaceTexture` / `TEXTURE_EXTERNAL_OES` → latest-only frame gate → vision interfaces (none registered) → empty effect graph → GLES 3 blit to the host `Surface`.
+CameraX (single bind) → GPU `SurfaceTexture` / `TEXTURE_EXTERNAL_OES` → latest-only frame gate → MediaPipe landmarks → makeup → beauty → **FilterEngine** → GLES 3 blit.
+
+Filter docs: [`docs/STEP_4_FILTERS.md`](docs/STEP_4_FILTERS.md)
 
 Front-camera mirroring is applied in the blit shader. Frame timestamps come from `SurfaceTexture.timestamp`.
 

@@ -1,6 +1,6 @@
 # AuraFX Step 3 — Professional Makeup
 
-Standalone SDK. No AuraLive. No filters (Step 4).
+Standalone SDK. No AuraLive. Filters run **after** this makeup pass (Step 4).
 
 ## Architecture
 
@@ -9,6 +9,7 @@ CameraX Preview + ImageAnalysis (one bind)
   → MediaPipe Face Landmarker
   → MakeupPipelineEffect  (resolve OES → region masks + stamps + liner/lash → GPU composite)
   → BeautyPipelineEffect  (skin / tone / face warp; copies makeup 2D if present)
+  → FilterPipelineEffect  (Step 4 color / LUT; skipped at intensity 0)
   → Host Surface
 ```
 

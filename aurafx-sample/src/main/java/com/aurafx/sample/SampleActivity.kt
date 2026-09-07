@@ -261,6 +261,41 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
             host.addView(label)
             host.addView(bar)
         }
+        val catalog = target.filterCatalog()
+        val filterLabel = TextView(this)
+        filterLabel.setTextColor(ContextCompat.getColor(this, R.color.text))
+        filterLabel.textSize = 12f
+        fun showFilter() {
+            val p = target.filterParameters()
+            filterLabel.text = "Filter  ${p.id ?: "none"}  i=${"%.2f".format(p.intensity)}"
+        }
+        showFilter()
+        host.addView(filterLabel)
+        val nextFilter = android.widget.Button(this)
+        nextFilter.text = "Next filter"
+        nextFilter.setOnClickListener {
+            val ids = catalog.map { it.id }
+            val cur = target.filterParameters().id
+            val idx = ids.indexOf(cur)
+            val id = ids[(idx + 1 + ids.size) % ids.size]
+            target.setFilter(id, target.filterParameters().intensity.takeIf { it > 0f } ?: 0.65f)
+            showFilter()
+        }
+        host.addView(nextFilter)
+        val clearF = android.widget.Button(this)
+        clearF.text = "Clear filter"
+        clearF.setOnClickListener {
+            target.clearFilter()
+            showFilter()
+        }
+        host.addView(clearF)
+        row("Filter intensity", read = {
+            target.filterParameters().intensity
+        }, write = { v ->
+            val id = target.filterParameters().id ?: catalog.first().id
+            target.setFilter(id, v)
+            showFilter()
+        })
         val resetMk = android.widget.Button(this)
         resetMk.text = "Classic makeup"
         resetMk.setOnClickListener {

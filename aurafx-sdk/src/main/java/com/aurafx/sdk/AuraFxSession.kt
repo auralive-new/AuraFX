@@ -14,12 +14,18 @@ import com.aurafx.sdk.api.AuraFxSessionListener
 import com.aurafx.sdk.api.BeautyParameters
 import com.aurafx.sdk.api.FaceShapeParameters
 import com.aurafx.sdk.api.LensFacing
+import com.aurafx.sdk.api.FilterParameters
 import com.aurafx.sdk.api.MakeupParameters
 import com.aurafx.sdk.api.MakeupPreset
 import com.aurafx.sdk.api.PerformanceSnapshot
 import com.aurafx.sdk.api.SessionConfig
 import com.aurafx.sdk.api.SkinParameters
 import com.aurafx.sdk.beauty.BeautyEngine
+import com.aurafx.sdk.filter.FilterCatalog
+import com.aurafx.sdk.filter.FilterDefinition
+import com.aurafx.sdk.filter.FilterEngine
+import com.aurafx.sdk.filter.FilterPipelineEffect
+import com.aurafx.sdk.filter.FilterRig
 import com.aurafx.sdk.beauty.BeautyPipelineEffect
 import com.aurafx.sdk.beauty.BeautyRig
 import com.aurafx.sdk.beauty.FaceShapeEngine
@@ -64,6 +70,8 @@ class AuraFxSession internal constructor(
     val beautyEngine = BeautyEngine(beautyRig)
     val faceShapeEngine = FaceShapeEngine(beautyRig)
     val makeupEngine = MakeupEngine(makeupRig)
+    val filterRig = FilterRig()
+    val filterEngine = FilterEngine(filterRig)
     val performance = PerformanceManager(
         enabled = instrumentationEnabled,
         nativeHeapProbe = { DeviceCapabilities.nativeHeapAllocatedBytes() },
@@ -122,6 +130,7 @@ class AuraFxSession internal constructor(
     init {
         effects.register(MakeupPipelineEffect(makeupRig))
         effects.register(BeautyPipelineEffect(beautyRig))
+        effects.register(FilterPipelineEffect(filterRig))
         if (config.enableFaceLandmarks) {
             val analyzer = MediaPipeFaceLandmarkerAnalyzer(
                 context = appContext,
@@ -283,6 +292,45 @@ class AuraFxSession internal constructor(
         makeupEngine.reset()
         return this
     }
+
+    fun filter(block: FilterParameters.() -> Unit): AuraFxSession {
+        val draft = filterEngine.parameters()
+        block(draft)
+        draft.clampInPlace()
+        val id = draft.id
+        if (id != null && FilterCatalog.require(id) == null) {
+            return this
+        }
+        filterEngine.apply {
+            this.id = draft.id
+            intensity = draft.intensity
+            finish = draft.finish
+            finishIntensity = draft.finishIntensity
+        }
+        return this
+    }
+
+    fun setFilter(filterId: String, intensity: Float): AuraFxResult<Unit> {
+        if (FilterCatalog.require(filterId) == null) {
+            return AuraFxResult.Err(AuraFxError.UnknownFilter("Unknown filter id: $filterId"))
+        }
+        filterEngine.setFilter(filterId, intensity)
+        return AuraFxResult.Ok(Unit)
+    }
+
+    fun clearFilter(): AuraFxSession {
+        filterEngine.clear()
+        return this
+    }
+
+    fun resetFilter(): AuraFxSession {
+        filterEngine.reset()
+        return this
+    }
+
+    fun filterParameters(): FilterParameters = filterEngine.parameters()
+
+    fun filterCatalog(): List<FilterDefinition> = filterEngine.catalog()
 
     fun makeupParameters(): MakeupParameters = makeupEngine.snapshot()
 
