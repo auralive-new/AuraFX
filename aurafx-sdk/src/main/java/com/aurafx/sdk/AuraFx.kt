@@ -5,6 +5,7 @@ import com.aurafx.sdk.api.AuraFxConfig
 import com.aurafx.sdk.api.AuraFxError
 import com.aurafx.sdk.api.AuraFxResult
 import com.aurafx.sdk.api.SessionConfig
+import com.aurafx.sdk.internal.AuraFxLog
 import com.aurafx.sdk.internal.device.DeviceCapabilities
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -34,6 +35,7 @@ object AuraFx {
         this.appContext = app
         this.config = config
         initialized.set(true)
+        AuraFxLog.i("AuraFx.initialize ok gles3=${config.requireGles3}")
         return AuraFxResult.Ok(Unit)
     }
 
@@ -49,6 +51,7 @@ object AuraFx {
             instrumentationEnabled = config.enablePerformanceInstrumentation,
         )
         sessions.updateAndGet { it + session }
+        AuraFxLog.i("createSession")
         return AuraFxResult.Ok(session)
     }
 

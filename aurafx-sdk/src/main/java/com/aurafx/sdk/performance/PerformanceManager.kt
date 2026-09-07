@@ -1,5 +1,6 @@
 package com.aurafx.sdk.performance
 
+import com.aurafx.sdk.api.FrameIngress
 import com.aurafx.sdk.api.PerformanceSnapshot
 
 fun interface MemoryProbe {
@@ -34,6 +35,8 @@ class PerformanceManager(
     private var cameraReadyNs = 0L
     private var lastEffectLoadNs: Long? = null
     private var lastTimestampNs: Long? = null
+    private var lastIngress: FrameIngress = FrameIngress.NONE
+    private var pipelineAdmitted: Long = 0
 
     fun markCameraStart() {
         if (!enabled) return
@@ -52,11 +55,19 @@ class PerformanceManager(
         }
     }
 
-    fun onFramePresented(timestampNs: Long, processNs: Long, gpuNs: Long?) {
+    fun onFramePresented(
+        timestampNs: Long,
+        processNs: Long,
+        gpuNs: Long?,
+        ingress: FrameIngress = FrameIngress.CAMERA_OES,
+        admitted: Long = 0,
+    ) {
         if (!enabled) return
         val now = System.nanoTime()
         synchronized(lock) {
             presentedFrames += 1
+            lastIngress = ingress
+            pipelineAdmitted = admitted
             lastTimestampNs = timestampNs
             if (gpuNs != null) lastGpuNs = gpuNs
             if (emaProcessNs == 0f) {
@@ -105,6 +116,8 @@ class PerformanceManager(
                 nativeHeapAllocatedBytes = nativeHeapProbe(),
                 lastEffectLoadMs = lastEffectLoadNs?.let { it / 1_000_000f },
                 lastCameraFrameTimestampNs = lastTimestampNs,
+                lastIngress = lastIngress,
+                pipelineAdmitted = pipelineAdmitted,
             )
         }
     }

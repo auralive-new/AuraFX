@@ -16,6 +16,7 @@ class PerformanceManagerTest {
         assertThat(snap.droppedFrames).isEqualTo(0)
         assertThat(snap.gpuTimeMs).isNull()
         assertThat(snap.cameraStartupMs).isNull()
+        assertThat(snap.lastIngress).isEqualTo(com.aurafx.sdk.api.FrameIngress.NONE)
         assertThat(snap.lastEffectLoadMs).isNull()
         assertThat(snap.javaHeapUsedBytes).isEqualTo(1234L)
         assertThat(snap.nativeHeapAllocatedBytes).isNull()

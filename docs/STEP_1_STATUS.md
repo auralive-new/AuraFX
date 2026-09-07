@@ -1,34 +1,26 @@
-# Step 1A / 1B status
+# Step 1B status
 
-This file records what is actually implemented. Nothing here is claimed from emulator-only or invented metrics.
+## Physical device
 
-## STEP 1A — Architecture: PASS (design + code landed)
+`adb devices` in this environment returned an empty list. USB enumeration had no Android phones.
 
-- Empty repo inspection: no AuraLive, no prior SDK.
-- Standalone `:aurafx-sdk` module; `:aurafx-sample` is an independent harness.
-- AuraLive Preview was not created and was not modified (it does not exist in this workspace).
+**PHYSICAL DEVICE VERIFICATION = PENDING**
 
-## STEP 1B — Build: PASS (compile + JVM unit tests)
+No FPS, process time, drop counts, startup time, GPU time, or memory-leak conclusions are reported from a phone because none were measured on a phone.
 
-- `./gradlew :aurafx-sdk:assembleRelease :aurafx-sdk:test :aurafx-sample:assembleDebug` succeeded in this environment.
+## What was done without a device
 
-## Device checks (Step 1B)
+Core hardening (still a single CameraX → SurfaceTexture → GPU path):
 
-A physical Android device was **not** available in this cloud workspace.
+- `processFrame` is rejected while the live camera is wanted or bound (`LiveIngressPolicy`). It cannot run as a second live camera.
+- CameraX bind generation ignores stale start callbacks; every bind starts with `unbindAll`.
+- ImageAnalysis is still not added.
+- SurfaceTexture buffer size is taken from the CameraX `SurfaceRequest` resolution.
+- Lifecycle will not rebind until `attachPreview` has a valid host Surface.
+- `onFirstFrame` resets on each camera start.
+- Tag `AuraFX` logs for initialize, EGL, CameraX bind/unbind, SurfaceRequest, first OES frame, stop, release, and errors (not per-frame).
+- Snapshot includes `lastIngress` (`CAMERA_OES` vs `PROCESS_FRAME`) so a later device run can prove which producer presented.
 
-| Check | Status |
-|---|---|
-| Camera Front | PENDING |
-| Camera Back | PENDING |
-| Real Frame Pipeline | PENDING |
-| GPU Rendering | PENDING |
-| Lifecycle | PENDING |
-| Repeated Start/Stop | PENDING |
-| Black Frame Test | PENDING |
-| Performance (measured on device) | PENDING |
-| Memory (leak after cycles) | PENDING |
-| Physical Device Verification | **PENDING** |
+## Builds / tests (this environment)
 
-STEP 1 FINAL STATUS: **not PASS** — real core is not device-verified.
-
-Do not start Step 2 until explicitly approved.
+See the latest Gradle run in the agent log. Device-dependent checks remain PENDING.

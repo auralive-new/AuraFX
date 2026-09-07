@@ -16,12 +16,14 @@ import com.aurafx.sdk.api.PerformanceSnapshot
 import com.aurafx.sdk.api.SessionConfig
 import com.aurafx.sdk.effect.Effect
 import com.aurafx.sdk.effect.EffectManager
+import com.aurafx.sdk.internal.AuraFxLog
 import com.aurafx.sdk.internal.camera.AuraFxCameraController
 import com.aurafx.sdk.internal.camera.CameraPermission
 import com.aurafx.sdk.internal.device.DeviceCapabilities
 import com.aurafx.sdk.internal.render.AuraFxRenderThread
 import com.aurafx.sdk.performance.PerformanceManager
 import com.aurafx.sdk.pipeline.FramePipeline
+import com.aurafx.sdk.pipeline.LiveIngressPolicy
 import com.aurafx.sdk.vision.VisionProcessor
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -57,7 +59,11 @@ class AuraFxSession internal constructor(
         listener = listener,
         mainPoster = { mainHandler.post(it) },
     )
-    private val camera = AuraFxCameraController(appContext, config)
+    private val camera = AuraFxCameraController(
+        appContext,
+        config,
+        onPreviewResolution = { size -> renderer.setCameraBufferSize(size.width, size.height) },
+    )
 
     @Volatile private var lifecycleOwner: LifecycleOwner? = null
     @Volatile private var previewReady = false
@@ -66,13 +72,20 @@ class AuraFxSession internal constructor(
     private val lifecycleObserver = object : DefaultLifecycleObserver {
         override fun onPause(owner: LifecycleOwner) {
             if (wantRunning.get() && camera.isBound()) {
+                AuraFxLog.i("lifecycle onPause -> unbind camera")
                 pausedByLifecycle.set(true)
+                renderer.setLiveCameraActive(false)
                 camera.stop()
             }
         }
 
         override fun onResume(owner: LifecycleOwner) {
             if (wantRunning.get() && pausedByLifecycle.get()) {
+                if (!previewReady) {
+                    AuraFxLog.i("lifecycle onResume waiting for preview surface")
+                    return
+                }
+                AuraFxLog.i("lifecycle onResume -> rebind camera")
                 pausedByLifecycle.set(false)
                 startCameraInternal(owner, lastFacing)
             }
@@ -97,10 +110,19 @@ class AuraFxSession internal constructor(
         if (glError != null) return AuraFxResult.Err(glError)
         renderer.attachOutput(surface, width, height)
         previewReady = true
+        AuraFxLog.i("attachPreview ${width}x${height}")
+        if (wantRunning.get() && pausedByLifecycle.get()) {
+            val owner = lifecycleOwner
+            if (owner != null) {
+                pausedByLifecycle.set(false)
+                startCameraInternal(owner, lastFacing)
+            }
+        }
         return AuraFxResult.Ok(Unit)
     }
 
     fun detachPreview() {
+        AuraFxLog.i("detachPreview")
         previewReady = false
         if (!released.get()) renderer.detachOutput()
     }
@@ -131,6 +153,7 @@ class AuraFxSession internal constructor(
         wantRunning.set(true)
         lastFacing = lensFacing
         performance.markCameraStart()
+        AuraFxLog.i("startCamera facing=$lensFacing")
         startCameraInternal(lifecycleOwner, lensFacing)
         return AuraFxResult.Ok(Unit)
     }
@@ -166,6 +189,8 @@ class AuraFxSession internal constructor(
     fun stopCamera(): AuraFxResult<Unit> {
         wantRunning.set(false)
         pausedByLifecycle.set(false)
+        renderer.setLiveCameraActive(false)
+        AuraFxLog.i("stopCamera")
         val result = camera.stop()
         mainHandler.post { listener?.onCameraStopped() }
         return result
@@ -176,6 +201,10 @@ class AuraFxSession internal constructor(
      */
     fun processFrame(input: AuraFxInputFrame): AuraFxResult<Unit> {
         if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        LiveIngressPolicy.denyProcessFrameIfCameraActive(wantRunning.get(), camera.isBound())?.let {
+            AuraFxLog.w(it.message)
+            return AuraFxResult.Err(it)
+        }
         if (input.width <= 0 || input.height <= 0) {
             return AuraFxResult.Err(AuraFxError.InvalidState("Invalid frame size"))
         }
@@ -202,6 +231,8 @@ class AuraFxSession internal constructor(
         wantRunning.set(false)
         lifecycleOwner?.lifecycle?.removeObserver(lifecycleObserver)
         lifecycleOwner = null
+        AuraFxLog.i("session release")
+        renderer.setLiveCameraActive(false)
         try {
             camera.release()
         } catch (t: Throwable) {
@@ -217,6 +248,7 @@ class AuraFxSession internal constructor(
 
     private fun startCameraInternal(owner: LifecycleOwner, facing: LensFacing) {
         renderer.setFacing(facing)
+        renderer.setLiveCameraActive(true)
         camera.start(
             lifecycleOwner = owner,
             facing = facing,

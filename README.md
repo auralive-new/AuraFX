@@ -56,13 +56,14 @@ export ANDROID_HOME=/path/to/android-sdk
 ./gradlew :aurafx-sdk:assembleRelease :aurafx-sdk:test :aurafx-sample:assembleDebug
 ```
 
-Install the harness on a device:
+Install the harness on a **physical** device (Step 1B):
 
 ```bash
 ./gradlew :aurafx-sample:installDebug
+adb logcat -s AuraFX
 ```
 
-Physical-device verification is Step 1B. Compilation and JVM unit tests do **not** constitute a Step 1 pass.
+Physical-device verification is required for Step 1 PASS. Compilation and JVM unit tests do **not** constitute a Step 1 pass.
 
 ## Metrics
 

@@ -12,10 +12,12 @@ import android.view.Surface
 import com.aurafx.sdk.api.AuraFxError
 import com.aurafx.sdk.api.AuraFxInputFrame
 import com.aurafx.sdk.api.AuraFxSessionListener
+import com.aurafx.sdk.api.FrameIngress
 import com.aurafx.sdk.api.LensFacing
 import com.aurafx.sdk.effect.EffectContext
 import com.aurafx.sdk.effect.EffectManager
 import com.aurafx.sdk.effect.FrameContext
+import com.aurafx.sdk.internal.AuraFxLog
 import com.aurafx.sdk.performance.PerformanceManager
 import com.aurafx.sdk.pipeline.FramePipeline
 import com.aurafx.sdk.vision.VisionFrame
@@ -57,14 +59,17 @@ internal class AuraFxRenderThread(
     private var facing: LensFacing = LensFacing.FRONT
     private val firstFrameNotified = AtomicBoolean(false)
     private val released = AtomicBoolean(false)
+    private val liveCameraActive = AtomicBoolean(false)
 
     fun start() {
+        AuraFxLog.i("GL thread start")
         thread.start()
         handler = Handler(thread.looper)
         handler.post {
             try {
                 initializeGl()
             } catch (t: Throwable) {
+                AuraFxLog.e("GL init failed", t)
                 initError.set(t)
             } finally {
                 ready.countDown()
@@ -87,6 +92,21 @@ internal class AuraFxRenderThread(
         facing = value
     }
 
+    fun setLiveCameraActive(active: Boolean) {
+        liveCameraActive.set(active)
+        if (active) {
+            firstFrameNotified.set(false)
+        }
+        AuraFxLog.i("liveCameraActive=$active")
+    }
+
+    fun setCameraBufferSize(width: Int, height: Int) {
+        handler.runSync {
+            AuraFxLog.i("SurfaceTexture setDefaultBufferSize ${width}x${height}")
+            surfaceTexture?.setDefaultBufferSize(width, height)
+        }
+    }
+
     fun attachOutput(surface: Surface, width: Int, height: Int) {
         handler.post {
             try {
@@ -101,7 +121,9 @@ internal class AuraFxRenderThread(
                 GLES30.glClearColor(0f, 0f, 0f, 1f)
                 GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
                 eglCore.swapBuffers(windowSurface)
+                AuraFxLog.i("EGL window attached ${width}x${height}")
             } catch (t: Throwable) {
+                AuraFxLog.e("Failed to attach preview surface", t)
                 postError(AuraFxError.GpuFailure("Failed to attach preview surface", t))
             }
         }
@@ -128,6 +150,11 @@ internal class AuraFxRenderThread(
     }
 
     fun submitExternalFrame(frame: AuraFxInputFrame) {
+        if (liveCameraActive.get()) {
+            AuraFxLog.w("processFrame dropped; live camera pipeline owns the output")
+            performance.onDropped()
+            return
+        }
         handler.post { presentExternal(frame) }
     }
 
@@ -177,6 +204,10 @@ internal class AuraFxRenderThread(
         cameraSurface = Surface(st)
 
         effects.attach(EffectContext(eglCore.context, performance))
+        AuraFxLog.i(
+            "EGL/GLES ready oesTex=$oesTextureId gpuTimer=${gpuTimer.supported} " +
+                "renderer=BlitProgram OES",
+        )
     }
 
     private fun onCameraFrameAvailable() {
@@ -229,12 +260,23 @@ internal class AuraFxRenderThread(
             gpuTimer.end()
             eglCore.swapBuffers(windowSurface)
             val processNs = System.nanoTime() - started
-            performance.onFramePresented(timestampNs, processNs, previousGpuNs)
+            performance.onFramePresented(
+                timestampNs,
+                processNs,
+                previousGpuNs,
+                ingress = FrameIngress.CAMERA_OES,
+                admitted = pipeline.admittedCount(),
+            )
             performance.markCameraReady()
             if (firstFrameNotified.compareAndSet(false, true)) {
+                AuraFxLog.i(
+                    "first OES frame ts=$timestampNs facing=$facing " +
+                        "viewport=${viewportW}x${viewportH} mirror=$mirror",
+                )
                 mainPoster { listener?.onFirstFrame(timestampNs) }
             }
         } catch (t: Throwable) {
+            AuraFxLog.e("Frame present failed", t)
             postError(AuraFxError.GpuFailure("Frame present failed", t))
         } finally {
             pipeline.end()
@@ -281,7 +323,13 @@ internal class AuraFxRenderThread(
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
             blit.draw2d(cpuTextureId, mirrorX = false)
             eglCore.swapBuffers(windowSurface)
-            performance.onFramePresented(frame.timestampNs, System.nanoTime() - started, gpuNs = null)
+            performance.onFramePresented(
+                frame.timestampNs,
+                System.nanoTime() - started,
+                gpuNs = null,
+                ingress = FrameIngress.PROCESS_FRAME,
+                admitted = pipeline.admittedCount(),
+            )
         } catch (t: Throwable) {
             postError(AuraFxError.GpuFailure("processFrame upload failed", t))
         } finally {
@@ -300,6 +348,7 @@ internal class AuraFxRenderThread(
     }
 
     private fun teardownGl() {
+        AuraFxLog.i("GL teardown")
         try {
             effects.detachAll()
         } catch (_: Throwable) {

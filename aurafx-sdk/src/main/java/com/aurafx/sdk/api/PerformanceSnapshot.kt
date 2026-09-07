@@ -15,4 +15,6 @@ data class PerformanceSnapshot(
     val nativeHeapAllocatedBytes: Long?,
     val lastEffectLoadMs: Float?,
     val lastCameraFrameTimestampNs: Long?,
+    val lastIngress: FrameIngress = FrameIngress.NONE,
+    val pipelineAdmitted: Long = 0,
 )

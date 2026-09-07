@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.SurfaceHolder
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,6 +47,8 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
                     append("  nativeHeap=").append(snap.nativeHeapAllocatedBytes ?: "n/a")
                     append("\nlastTs=").append(snap.lastCameraFrameTimestampNs ?: "n/a")
                     append("  facing=").append(session?.currentLensFacing())
+                    append("  ingress=").append(snap.lastIngress)
+                    append("  admitted=").append(snap.pipelineAdmitted)
                 }
             }
             mainHandler.postDelayed(this, 500)
@@ -223,6 +226,7 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
     }
 
     private fun setStatus(text: String, error: Boolean = false) {
+        Log.i("AuraFX", "sample: $text")
         binding.statusText.text = text
         binding.statusText.setTextColor(
             ContextCompat.getColor(this, if (error) R.color.danger else R.color.text),
