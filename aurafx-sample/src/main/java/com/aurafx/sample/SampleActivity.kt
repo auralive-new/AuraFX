@@ -7,6 +7,9 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.SurfaceHolder
+import android.widget.LinearLayout
+import android.widget.SeekBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -49,6 +52,10 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
                     append("  facing=").append(session?.currentLensFacing())
                     append("  ingress=").append(snap.lastIngress)
                     append("  admitted=").append(snap.pipelineAdmitted)
+                    val track = session?.vision?.latest()
+                    append("\nvision=").append(track?.visionProvider ?: "none")
+                    append("  status=").append(track?.status)
+                    append("  lm=").append(track?.landmarks?.count ?: 0)
                 }
             }
             mainHandler.postDelayed(this, 500)
@@ -176,7 +183,10 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 ),
             )
             when (created) {
-                is AuraFxResult.Ok -> session = created.value
+                is AuraFxResult.Ok -> {
+                    session = created.value
+                    bindBeautySliders(created.value)
+                }
                 is AuraFxResult.Err -> {
                     setStatus(created.error.message, error = true)
                     return
@@ -223,6 +233,62 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
             }, 400)
         }
         step()
+    }
+
+    private fun bindBeautySliders(target: AuraFxSession) {
+        val host = binding.sliderHost
+        host.removeAllViews()
+        fun row(name: String, signed: Boolean = false, read: () -> Float, write: (Float) -> Unit) {
+            val label = TextView(this)
+            label.setTextColor(ContextCompat.getColor(this, R.color.text))
+            label.textSize = 12f
+            val bar = SeekBar(this)
+            bar.max = 200
+            fun display(v: Float) {
+                label.text = "$name  ${"%.2f".format(v)}"
+            }
+            val initial = read()
+            bar.progress = if (signed) ((initial + 1f) * 100f).toInt().coerceIn(0, 200) else (initial * 200f).toInt().coerceIn(0, 200)
+            display(initial)
+            bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val v = if (signed) progress / 100f - 1f else progress / 200f
+                    write(v)
+                    display(read())
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+            host.addView(label)
+            host.addView(bar)
+        }
+        row("Fine Smooth", read = { target.beautyParameters().fineSmooth }, write = { v -> target.beauty { fineSmooth = v } })
+        row("Skin Smoothness", read = { target.skinParameters().smoothness }, write = { v -> target.skin { smoothness = v } })
+        row("Skin Texture", read = { target.skinParameters().texturePreserve }, write = { v -> target.skin { texturePreserve = v } })
+        row("Blemish", read = { target.skinParameters().blemishReduction }, write = { v -> target.skin { blemishReduction = v } })
+        row("Evenness", read = { target.skinParameters().evenness }, write = { v -> target.skin { evenness = v } })
+        row("Brightness", read = { target.skinParameters().brightness }, write = { v -> target.skin { brightness = v } })
+        row("Whiten", read = { target.beautyParameters().whiten }, write = { v -> target.beauty { whiten = v } })
+        row("Ruddy", read = { target.beautyParameters().ruddy }, write = { v -> target.beauty { ruddy = v } })
+        row("Skin Tone", read = { target.skinParameters().tone }, write = { v -> target.skin { tone = v } })
+        row("Natural Skin", read = { target.skinParameters().naturalSkin }, write = { v -> target.skin { naturalSkin = v } })
+        row("Tooth Whiten", read = { target.beautyParameters().toothWhiten }, write = { v -> target.beauty { toothWhiten = v } })
+        row("Circles", read = { target.beautyParameters().circles }, write = { v -> target.beauty { circles = v } })
+        row("V Face", read = { target.faceShapeParameters().vFace }, write = { v -> target.faceShape { vFace = v } })
+        row("Cheek Thin", read = { target.faceShapeParameters().cheekThin }, write = { v -> target.faceShape { cheekThin = v } })
+        row("Cheek Small", read = { target.faceShapeParameters().cheekSmall }, write = { v -> target.faceShape { cheekSmall = v } })
+        row("Cheek Narrow", read = { target.faceShapeParameters().cheekNarrow }, write = { v -> target.faceShape { cheekNarrow = v } })
+        row("Nose", read = { target.faceShapeParameters().nose }, write = { v -> target.faceShape { nose = v } })
+        row("Eye Enlarge", read = { target.faceShapeParameters().eyeEnlarge }, write = { v -> target.faceShape { eyeEnlarge = v } })
+        row("Eye Distance", signed = true, read = { target.faceShapeParameters().eyeDistance }, write = { v -> target.faceShape { eyeDistance = v } })
+        row("Mouth", read = { target.faceShapeParameters().mouth }, write = { v -> target.faceShape { mouth = v } })
+        val reset = android.widget.Button(this)
+        reset.text = "Reset beauty"
+        reset.setOnClickListener {
+            target.resetBeauty()
+            bindBeautySliders(target)
+        }
+        host.addView(reset)
     }
 
     private fun setStatus(text: String, error: Boolean = false) {

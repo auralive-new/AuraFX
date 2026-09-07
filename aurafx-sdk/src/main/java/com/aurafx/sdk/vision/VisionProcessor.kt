@@ -1,11 +1,11 @@
 package com.aurafx.sdk.vision
 
+import com.aurafx.sdk.beauty.FaceLandmarks
+import java.util.concurrent.atomic.AtomicReference
+
 /**
- * Holds optional vision implementations. Step 1 registers none.
- *
- * Hosts may attach real implementations in later steps via [install]. Calling detect
- * methods without an implementation is not done — [process] short-circuits to
- * [TrackingData.unavailable].
+ * Latest tracker output. ImageAnalysis publishes here; the GL thread only reads.
+ * Empty READY means the model ran and found no face. UNAVAILABLE means no model.
  */
 class VisionProcessor {
     @Volatile var faceDetector: FaceDetector? = null
@@ -20,6 +20,8 @@ class VisionProcessor {
         private set
     @Volatile var poseTracker: PoseTracker? = null
         private set
+
+    private val published = AtomicReference(TrackingData.unavailable(0L))
 
     fun install(
         faceDetector: FaceDetector? = this.faceDetector,
@@ -37,20 +39,33 @@ class VisionProcessor {
         this.poseTracker = poseTracker
     }
 
+    fun publish(data: TrackingData) {
+        published.set(data)
+    }
+
+    fun clear() {
+        published.set(TrackingData.unavailable(0L))
+    }
+
+    fun latest(): TrackingData = published.get()
+
     fun hasAnyImplementation(): Boolean =
         faceDetector != null ||
             faceLandmarkTracker != null ||
             faceTracker != null ||
             irisTracker != null ||
             segmenter != null ||
-            poseTracker != null
+            poseTracker != null ||
+            latest().status == VisionStatus.READY
 
-    /**
-     * Runs only registered implementations. If none are registered, returns UNAVAILABLE
-     * without inventing landmarks or detections.
-     */
     fun process(frame: VisionFrame): TrackingData {
-        if (!hasAnyImplementation()) {
+        val fromAnalyzer = published.get()
+        if (fromAnalyzer.status == VisionStatus.READY) {
+            return fromAnalyzer.copy(frameTimestampNs = frame.timestampNs)
+        }
+        if (faceDetector == null && faceLandmarkTracker == null && faceTracker == null &&
+            irisTracker == null && segmenter == null && poseTracker == null
+        ) {
             return TrackingData.unavailable(frame.timestampNs)
         }
         return TrackingData(

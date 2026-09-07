@@ -10,5 +10,6 @@ data class SessionConfig(
     val preferredPreviewWidth: Int = 1280,
     val preferredPreviewHeight: Int = 720,
     val mirrorFrontCamera: Boolean = true,
+    val enableFaceLandmarks: Boolean = true,
     val listener: AuraFxSessionListener? = null,
 )

@@ -3,10 +3,9 @@ package com.aurafx.sdk.effect
 import com.aurafx.sdk.api.LensFacing
 
 /**
- * Per-frame GPU state. Effects in later steps may read the input texture and write
- * intermediate targets. Step 1 ships no effect that mutates the frame.
+ * Per-frame GPU state. An effect may write [processedTextureId] for the presenter.
  */
-data class FrameContext(
+class FrameContext(
     val timestampNs: Long,
     val width: Int,
     val height: Int,
@@ -14,4 +13,11 @@ data class FrameContext(
     val inputIsOes: Boolean,
     val texMatrix: FloatArray,
     val lensFacing: LensFacing,
-)
+) {
+    var processedTextureId: Int = 0
+    var processedIsOes: Boolean = false
+
+    fun outputTextureId(): Int = if (processedTextureId != 0) processedTextureId else inputTextureId
+
+    fun outputIsOes(): Boolean = if (processedTextureId != 0) processedIsOes else inputIsOes
+}

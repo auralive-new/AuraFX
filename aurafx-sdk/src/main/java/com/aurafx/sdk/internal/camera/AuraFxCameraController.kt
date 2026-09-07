@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Size
 import android.view.Surface
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceRequest
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -21,9 +22,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Single CameraX Preview bind per session. ImageAnalysis is intentionally not used.
- * Rebind always calls [ProcessCameraProvider.unbindAll] first so a second camera stack
- * cannot remain open.
+ * Single CameraX bind per session. Preview stays on the GPU path.
+ * Optional ImageAnalysis (KEEP_ONLY_LATEST) shares that bind for MediaPipe;
+ * it is not a second camera pipeline.
  */
 internal class AuraFxCameraController(
     private val appContext: Context,
@@ -35,6 +36,10 @@ internal class AuraFxCameraController(
     private val cameraExecutor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "aurafx-camera").apply { isDaemon = true }
     }
+    private val visionExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "aurafx-vision").apply { isDaemon = true }
+    }
+    @Volatile var analyzer: ImageAnalysis.Analyzer? = null
     @Volatile private var provider: ProcessCameraProvider? = null
     @Volatile var currentFacing: LensFacing = LensFacing.FRONT
         private set
@@ -119,6 +124,7 @@ internal class AuraFxCameraController(
         bound.set(false)
         provider = null
         cameraExecutor.shutdown()
+        visionExecutor.shutdown()
     }
 
     fun isBound(): Boolean = bound.get()
@@ -151,15 +157,37 @@ internal class AuraFxCameraController(
         preview.setSurfaceProvider { request ->
             providePreviewSurface(request, previewSurface)
         }
+        val analysisCase = analyzer?.let { boundAnalyzer ->
+            val analysisSelector = ResolutionSelector.Builder()
+                .setResolutionStrategy(
+                    ResolutionStrategy(
+                        Size(320, 320),
+                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                    ),
+                )
+                .build()
+            ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                .setResolutionSelector(analysisSelector)
+                .setTargetRotation(rotation)
+                .build()
+                .also { it.setAnalyzer(visionExecutor, boundAnalyzer) }
+        }
         try {
-            cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview)
+            if (analysisCase != null) {
+                cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysisCase)
+                AuraFxLog.i("CameraX bound facing=$facing useCases=Preview+ImageAnalysis(KEEP_ONLY_LATEST)")
+            } else {
+                cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview)
+                AuraFxLog.i("CameraX bound facing=$facing useCases=Preview-only")
+            }
         } catch (t: Throwable) {
             bound.set(false)
             throw t
         }
         currentFacing = facing
         bound.set(true)
-        AuraFxLog.i("CameraX bound facing=$facing useCases=Preview-only")
     }
 
     private fun providePreviewSurface(request: SurfaceRequest, previewSurface: Surface) {

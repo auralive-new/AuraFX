@@ -11,9 +11,17 @@ import com.aurafx.sdk.api.AuraFxError
 import com.aurafx.sdk.api.AuraFxInputFrame
 import com.aurafx.sdk.api.AuraFxResult
 import com.aurafx.sdk.api.AuraFxSessionListener
+import com.aurafx.sdk.api.BeautyParameters
+import com.aurafx.sdk.api.FaceShapeParameters
 import com.aurafx.sdk.api.LensFacing
 import com.aurafx.sdk.api.PerformanceSnapshot
 import com.aurafx.sdk.api.SessionConfig
+import com.aurafx.sdk.api.SkinParameters
+import com.aurafx.sdk.beauty.BeautyEngine
+import com.aurafx.sdk.beauty.BeautyPipelineEffect
+import com.aurafx.sdk.beauty.BeautyRig
+import com.aurafx.sdk.beauty.FaceShapeEngine
+import com.aurafx.sdk.beauty.SkinEngine
 import com.aurafx.sdk.effect.Effect
 import com.aurafx.sdk.effect.EffectManager
 import com.aurafx.sdk.internal.AuraFxLog
@@ -25,6 +33,7 @@ import com.aurafx.sdk.performance.PerformanceManager
 import com.aurafx.sdk.pipeline.FramePipeline
 import com.aurafx.sdk.pipeline.LiveIngressPolicy
 import com.aurafx.sdk.vision.VisionProcessor
+import com.aurafx.sdk.vision.mediapipe.MediaPipeFaceLandmarkerAnalyzer
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -44,6 +53,10 @@ class AuraFxSession internal constructor(
 
     val pipeline = FramePipeline()
     val vision = VisionProcessor()
+    val beautyRig = BeautyRig()
+    val skinEngine = SkinEngine(beautyRig)
+    val beautyEngine = BeautyEngine(beautyRig)
+    val faceShapeEngine = FaceShapeEngine(beautyRig)
     val performance = PerformanceManager(
         enabled = instrumentationEnabled,
         nativeHeapProbe = { DeviceCapabilities.nativeHeapAllocatedBytes() },
@@ -97,7 +110,19 @@ class AuraFxSession internal constructor(
         }
     }
 
+    private var faceAnalyzer: MediaPipeFaceLandmarkerAnalyzer? = null
+
     init {
+        effects.register(BeautyPipelineEffect(beautyRig))
+        if (config.enableFaceLandmarks) {
+            val analyzer = MediaPipeFaceLandmarkerAnalyzer(
+                context = appContext,
+                mirrorX = { config.mirrorFrontCamera && lastFacing == LensFacing.FRONT },
+                onResult = { vision.publish(it) },
+            )
+            faceAnalyzer = analyzer
+            camera.analyzer = analyzer
+        }
         renderer.start()
     }
 
@@ -216,6 +241,32 @@ class AuraFxSession internal constructor(
         return AuraFxResult.Ok(Unit)
     }
 
+    fun skin(block: SkinParameters.() -> Unit): AuraFxSession {
+        skinEngine.apply(block)
+        return this
+    }
+
+    fun beauty(block: BeautyParameters.() -> Unit): AuraFxSession {
+        beautyEngine.apply(block)
+        return this
+    }
+
+    fun faceShape(block: FaceShapeParameters.() -> Unit): AuraFxSession {
+        faceShapeEngine.apply(block)
+        return this
+    }
+
+    fun resetBeauty(): AuraFxSession {
+        beautyRig.reset()
+        return this
+    }
+
+    fun skinParameters(): SkinParameters = beautyRig.copySkin()
+
+    fun beautyParameters(): BeautyParameters = beautyRig.copyBeauty()
+
+    fun faceShapeParameters(): FaceShapeParameters = beautyRig.copyShape()
+
     fun registerEffect(effect: Effect) = effects.register(effect)
 
     fun unregisterEffect(id: String) = effects.unregister(id)
@@ -233,6 +284,13 @@ class AuraFxSession internal constructor(
         lifecycleOwner = null
         AuraFxLog.i("session release")
         renderer.setLiveCameraActive(false)
+        vision.clear()
+        try {
+            faceAnalyzer?.close()
+        } catch (_: Throwable) {
+        }
+        faceAnalyzer = null
+        camera.analyzer = null
         try {
             camera.release()
         } catch (t: Throwable) {

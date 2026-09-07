@@ -22,7 +22,14 @@ Step 1 does **not** implement beauty, makeup, filters, background, hair, body, l
 | `aurafx-sdk` | Production SDK library |
 | `aurafx-sample` | Independent debug harness (not AuraLive Preview) |
 
-Architecture: [`docs/STEP_1A_ARCHITECTURE.md`](docs/STEP_1A_ARCHITECTURE.md)
+Step 2 skin/beauty/face-shape: [`docs/STEP_2_BEAUTY_FACE.md`](docs/STEP_2_BEAUTY_FACE.md)
+
+```kotlin
+session.skin { smoothness = 0.3f }
+session.beauty { toothWhiten = 0.4f; circles = 0.3f }
+session.faceShape { vFace = 0.2f; eyeEnlarge = 0.15f }
+session.resetBeauty()
+```
 
 ## Public API
 
@@ -63,7 +70,7 @@ Install the harness on a **physical** device (Step 1B):
 adb logcat -s AuraFX
 ```
 
-Physical-device verification is required for Step 1 PASS. Compilation and JVM unit tests do **not** constitute a Step 1 pass.
+Physical-device verification is required for a visual Step 1/2 PASS. Compilation and JVM unit tests do **not** prove realism on a face.
 
 ## Metrics
 

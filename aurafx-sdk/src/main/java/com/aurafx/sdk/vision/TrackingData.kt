@@ -1,11 +1,7 @@
 package com.aurafx.sdk.vision
 
-/**
- * Aggregated tracker output for a single pipeline frame.
- *
- * When [status] is [VisionStatus.UNAVAILABLE], lists are empty because **no model ran**,
- * not because the camera saw zero people.
- */
+import com.aurafx.sdk.beauty.FaceLandmarks
+
 data class TrackingData(
     val status: VisionStatus,
     val frameTimestampNs: Long,
@@ -15,6 +11,8 @@ data class TrackingData(
     val iris: List<IrisTrack> = emptyList(),
     val segmentation: SegmentationMask? = null,
     val pose: List<PoseBody> = emptyList(),
+    val landmarks: FaceLandmarks? = null,
+    val visionProvider: String? = null,
 ) {
     companion object {
         fun unavailable(timestampNs: Long): TrackingData =

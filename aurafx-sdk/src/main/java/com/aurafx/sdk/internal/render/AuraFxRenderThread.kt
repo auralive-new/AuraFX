@@ -256,7 +256,11 @@ internal class AuraFxRenderThread(
             gpuTimer.begin()
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
             val mirror = mirrorFrontCamera && facing == LensFacing.FRONT
-            blit.drawOes(oesTextureId, texMatrix, mirror)
+            if (frameContext.processedTextureId != 0 && !frameContext.outputIsOes()) {
+                blit.draw2d(frameContext.outputTextureId(), mirrorX = false)
+            } else {
+                blit.drawOes(oesTextureId, texMatrix, mirror)
+            }
             gpuTimer.end()
             eglCore.swapBuffers(windowSurface)
             val processNs = System.nanoTime() - started
