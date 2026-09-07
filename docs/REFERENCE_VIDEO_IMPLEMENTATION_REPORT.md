@@ -62,7 +62,13 @@ Plus existing `ReferenceFeatureSpecTest` and catalog tests.
 
 ## Build results
 
-Recorded in the scorecard after Gradle runs in this session.
+This session:
+
+- `./gradlew test` — **BUILD SUCCESSFUL**
+- `:aurafx-sdk:assembleRelease` — **passed**
+- `:aurafx-studio:assembleDebug` — **passed**
+
+No FPS or on-device visual numbers.
 
 ## Branding
 
