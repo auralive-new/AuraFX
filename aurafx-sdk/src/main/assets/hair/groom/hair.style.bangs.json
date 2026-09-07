@@ -1,0 +1,6 @@
+{
+  "id": "hair.style.bangs",
+  "kind": "tracked-strand-mesh",
+  "renderer": "HairGroomMeshBuilder",
+  "placeholder": false
+}

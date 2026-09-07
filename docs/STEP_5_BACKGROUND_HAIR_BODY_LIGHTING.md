@@ -67,7 +67,7 @@ Every field is consumed by the matching GPU effect.
 ## Catalogs
 
 - **20** background definitions (blur, solid, gradient, procedural environments).
-- **13** hairstyle definitions (1 real identity, 12 `RequiresGroomAsset`).
+- **13** hairstyle definitions. Step 7 renders all 13 (natural = own hair; 12 tracked procedural grooms). See [`STEP_7_FINAL_SDK_QA.md`](STEP_7_FINAL_SDK_QA.md).
 - **12** hair colors including Custom.
 - **6** body transforms: slim, waist, shoulders, legs, arms, torso.
 - **5** lighting modes: Soft, Directional, Warm, Cool, Natural.

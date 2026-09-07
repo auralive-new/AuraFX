@@ -214,7 +214,56 @@ void main() {
 }
 """
 
+    const val VERT_GROOM = """#version 300 es
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aUv;
+layout(location = 2) in vec2 aDisp;
+out vec2 vUv;
+out vec2 vStrand;
+void main() {
+  vUv = aUv;
+  vStrand = aDisp;
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}
+"""
+    const val FRAG_GROOM = """#version 300 es
+precision highp float;
+uniform sampler2D uImage;
+uniform sampler2D uMask;
+uniform vec3 uHairCol;
+uniform float uIntensity;
+uniform float uLightAzimuth;
+in vec2 vUv;
+in vec2 vStrand;
+out vec4 fragColor;
+void main() {
+  vec2 uv = clamp(vUv, 0.0, 1.0);
+  vec4 src4 = texture(uImage, uv);
+  vec4 m = texture(uMask, uv);
+  float hair = smoothstep(0.18, 0.72, m.g);
+  float face = smoothstep(0.28, 0.78, m.a);
+  float person = smoothstep(0.15, 0.7, m.r);
+  float along = vStrand.x;
+  float across = abs(vStrand.y);
+  float strand = 1.0 - smoothstep(0.55, 1.0, across);
+  strand *= smoothstep(0.0, 0.08, along) * (1.0 - smoothstep(0.92, 1.0, along));
+  float hairline = 1.0 - smoothstep(0.0, 0.18, along);
+  float faceKill = face * (1.0 - hair) * (1.0 - hairline * 0.85);
+  float occ = (0.35 + 0.65 * hair) * (1.0 - faceKill);
+  occ = mix(occ, occ * person, 0.35);
+  float lum = dot(src4.rgb, vec3(0.299, 0.587, 0.114));
+  float clum = max(dot(uHairCol, vec3(0.299, 0.587, 0.114)), 0.06);
+  vec3 col = uHairCol * mix(0.55, 1.15, lum);
+  float lit = 0.72 + 0.28 * clamp(0.5 + 0.5 * (uv.x - 0.5) * uLightAzimuth * 2.0, 0.0, 1.0);
+  col *= lit * (0.82 + 0.18 * (1.0 - across));
+  col = mix(col, src4.rgb * uHairCol / clum, 0.18);
+  float a = clamp(uIntensity * strand * occ, 0.0, 0.92);
+  fragColor = vec4(clamp(col, 0.0, 1.0), a);
+}
+"""
+
     fun lightingOk() = FRAG_LIGHT.contains("uShadowLift") && FRAG_LIGHT.contains("uIntensity")
     fun backgroundOk() = FRAG_BACKGROUND.contains("uMask") && FRAG_BACKGROUND.contains("procedural")
     fun hairOk() = FRAG_HAIR.contains("uHairCol")
+    fun groomOk() = FRAG_GROOM.contains("uHairCol") && VERT_GROOM.contains("aDisp")
 }

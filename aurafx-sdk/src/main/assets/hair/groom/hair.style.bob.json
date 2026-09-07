@@ -1,0 +1,6 @@
+{
+  "id": "hair.style.bob",
+  "kind": "tracked-strand-mesh",
+  "renderer": "HairGroomMeshBuilder",
+  "placeholder": false
+}

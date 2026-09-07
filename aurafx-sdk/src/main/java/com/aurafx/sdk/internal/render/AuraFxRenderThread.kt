@@ -11,9 +11,14 @@ import android.os.Process
 import android.view.Surface
 import com.aurafx.sdk.api.AuraFxError
 import com.aurafx.sdk.api.AuraFxInputFrame
+import com.aurafx.sdk.api.AuraFxResult
 import com.aurafx.sdk.api.AuraFxSessionListener
+import com.aurafx.sdk.api.CapturedPhoto
 import com.aurafx.sdk.api.FrameIngress
 import com.aurafx.sdk.api.LensFacing
+import com.aurafx.sdk.api.RecordedVideo
+import com.aurafx.sdk.capture.ProcessedJpegWriter
+import com.aurafx.sdk.capture.ProcessedVideoRecorder
 import com.aurafx.sdk.effect.EffectContext
 import com.aurafx.sdk.effect.EffectManager
 import com.aurafx.sdk.effect.FrameContext
@@ -22,8 +27,10 @@ import com.aurafx.sdk.performance.PerformanceManager
 import com.aurafx.sdk.pipeline.FramePipeline
 import com.aurafx.sdk.vision.VisionFrame
 import com.aurafx.sdk.vision.VisionProcessor
+import java.io.File
 import java.nio.ByteBuffer
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -60,6 +67,14 @@ internal class AuraFxRenderThread(
     private val firstFrameNotified = AtomicBoolean(false)
     private val released = AtomicBoolean(false)
     private val liveCameraActive = AtomicBoolean(false)
+    private val recorder = ProcessedVideoRecorder(performance)
+    private val photoIo = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "aurafx-photo").apply { isDaemon = true }
+    }
+    private val captureFbo = GlFramebuffer()
+    private var photoPixels: ByteBuffer? = null
+    private data class PhotoJob(val file: File, val done: (AuraFxResult<CapturedPhoto>) -> Unit)
+    private val photoJob = AtomicReference<PhotoJob?>(null)
 
     fun start() {
         AuraFxLog.i("GL thread start")
@@ -98,6 +113,54 @@ internal class AuraFxRenderThread(
             firstFrameNotified.set(false)
         }
         AuraFxLog.i("liveCameraActive=$active")
+    }
+
+    fun isRecording(): Boolean = recorder.isRunning()
+
+    fun captureProcessedPhoto(file: File, done: (AuraFxResult<CapturedPhoto>) -> Unit) {
+        photoJob.set(PhotoJob(file, done))
+    }
+
+    fun startRecording(file: File, recordAudio: Boolean): AuraFxResult<Unit> {
+        if (recorder.isRunning()) {
+            return AuraFxResult.Err(AuraFxError.InvalidState("Recording already in progress"))
+        }
+        return try {
+            handler.runSync(timeoutMs = 2_500) {
+                val eglCore = egl ?: throw IllegalStateException("EGL not ready")
+                val w = if (viewportW > 0) viewportW else 1280
+                val h = if (viewportH > 0) viewportH else 720
+                recorder.start(eglCore, file, w, h, recordAudio)
+                if (windowSurface != EGL14.EGL_NO_SURFACE) {
+                    eglCore.makeCurrent(windowSurface)
+                }
+            }
+            AuraFxResult.Ok(Unit)
+        } catch (t: Throwable) {
+            AuraFxLog.e("startRecording failed", t)
+            AuraFxResult.Err(AuraFxError.GpuFailure("Failed to start processed video recording", t))
+        }
+    }
+
+    fun stopRecording(done: (AuraFxResult<RecordedVideo>) -> Unit) {
+        handler.post {
+            try {
+                if (!recorder.isRunning()) {
+                    mainPoster { done(AuraFxResult.Err(AuraFxError.InvalidState("Not recording"))) }
+                    return@post
+                }
+                val result = recorder.stop()
+                val eglCore = egl
+                if (eglCore != null && windowSurface != EGL14.EGL_NO_SURFACE) {
+                    eglCore.makeCurrent(windowSurface)
+                }
+                performance.markExportNs(result.durationUs * 1_000L)
+                mainPoster { done(AuraFxResult.Ok(result)) }
+            } catch (t: Throwable) {
+                AuraFxLog.e("stopRecording failed", t)
+                mainPoster { done(AuraFxResult.Err(AuraFxError.GpuFailure("Failed to stop recording", t))) }
+            }
+        }
     }
 
     fun setCameraBufferSize(width: Int, height: Int) {
@@ -262,6 +325,8 @@ internal class AuraFxRenderThread(
                 blit.drawOes(oesTextureId, texMatrix, mirror)
             }
             gpuTimer.end()
+            presentCaptureSinks(eglCore, frameContext, timestampNs)
+            eglCore.makeCurrent(windowSurface)
             eglCore.swapBuffers(windowSurface)
             val processNs = System.nanoTime() - started
             performance.onFramePresented(
@@ -284,6 +349,68 @@ internal class AuraFxRenderThread(
             postError(AuraFxError.GpuFailure("Frame present failed", t))
         } finally {
             pipeline.end()
+        }
+    }
+
+    private fun presentCaptureSinks(eglCore: EglCore, frame: FrameContext, timestampNs: Long) {
+        val job = photoJob.getAndSet(null)
+        if (job != null) {
+            capturePhotoLocked(frame, timestampNs, job)
+        }
+        if (recorder.isRunning()) {
+            val tex = frame.outputTextureId()
+            val oes = frame.outputIsOes()
+            recorder.drawProcessed(eglCore, blit, tex, oes, frame.texMatrix, timestampNs)
+        }
+    }
+
+    private fun capturePhotoLocked(frame: FrameContext, timestampNs: Long, job: PhotoJob) {
+        val started = System.nanoTime()
+        try {
+            val w = viewportW.coerceAtLeast(1)
+            val h = viewportH.coerceAtLeast(1)
+            captureFbo.ensure(w, h)
+            captureFbo.bind()
+            GLES30.glViewport(0, 0, w, h)
+            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+            if (frame.processedTextureId != 0 && !frame.outputIsOes()) {
+                blit.draw2d(frame.outputTextureId(), mirrorX = false)
+            } else if (frame.inputIsOes) {
+                val mirror = mirrorFrontCamera && facing == LensFacing.FRONT
+                blit.drawOes(frame.inputTextureId, frame.texMatrix, mirror)
+            } else {
+                blit.draw2d(frame.outputTextureId(), mirrorX = false)
+            }
+            val needed = w * h * 4
+            val buf = photoPixels?.takeIf { it.capacity() >= needed } ?: ByteBuffer.allocateDirect(needed).also {
+                photoPixels = it
+            }
+            buf.clear()
+            GLES30.glReadPixels(0, 0, w, h, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buf)
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+            val copy = ByteBuffer.allocateDirect(needed)
+            buf.rewind()
+            copy.put(buf)
+            copy.rewind()
+            val processed = frame.processedTextureId != 0
+            photoIo.execute {
+                try {
+                    ProcessedJpegWriter.writeFlippedRgba(w, h, copy, job.file)
+                    performance.markPhotoNs(System.nanoTime() - started)
+                    mainPoster {
+                        job.done(
+                            AuraFxResult.Ok(
+                                CapturedPhoto(job.file, w, h, timestampNs, processed),
+                            ),
+                        )
+                    }
+                } catch (t: Throwable) {
+                    mainPoster { job.done(AuraFxResult.Err(AuraFxError.GpuFailure("Photo encode failed", t))) }
+                }
+            }
+        } catch (t: Throwable) {
+            AuraFxLog.e("Processed photo capture failed", t)
+            mainPoster { job.done(AuraFxResult.Err(AuraFxError.GpuFailure("Processed photo capture failed", t))) }
         }
     }
 
@@ -326,6 +453,18 @@ internal class AuraFxRenderThread(
             GLES30.glViewport(0, 0, viewportW, viewportH)
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
             blit.draw2d(cpuTextureId, mirrorX = false)
+            val extCtx = FrameContext(
+                timestampNs = frame.timestampNs,
+                width = viewportW,
+                height = viewportH,
+                inputTextureId = cpuTextureId,
+                inputIsOes = false,
+                texMatrix = FloatArray(16),
+                lensFacing = facing,
+            )
+            extCtx.processedTextureId = cpuTextureId
+            presentCaptureSinks(eglCore, extCtx, frame.timestampNs)
+            eglCore.makeCurrent(windowSurface)
             eglCore.swapBuffers(windowSurface)
             performance.onFramePresented(
                 frame.timestampNs,
@@ -353,6 +492,14 @@ internal class AuraFxRenderThread(
 
     private fun teardownGl() {
         AuraFxLog.i("GL teardown")
+        try {
+            recorder.releaseQuiet()
+        } catch (_: Throwable) {
+        }
+        try {
+            captureFbo.release()
+        } catch (_: Throwable) {
+        }
         try {
             effects.detachAll()
         } catch (_: Throwable) {
@@ -388,6 +535,7 @@ internal class AuraFxRenderThread(
         } catch (_: Throwable) {
         }
         egl = null
+        photoIo.shutdown()
     }
 
     private fun postError(error: AuraFxError) {

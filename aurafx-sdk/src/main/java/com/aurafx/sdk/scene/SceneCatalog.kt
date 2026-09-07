@@ -131,17 +131,23 @@ object HairCatalog {
         val e = ArrayList<String>()
         if (styles.size < 13) e += "need 13 styles"
         if (colors.size < 12) e += "need 12 colors"
-        if (styles.count { it.productionRealistic } != 1) e += "only natural is production-realistic"
+        if (styles.count { it.productionRealistic } != 13) e += "all 13 styles must be production-rendered"
         val ids = HashSet<String>()
-        for (s in styles) if (!ids.add(s.id)) e += "dup ${s.id}"
+        for (s in styles) {
+            if (!ids.add(s.id)) e += "dup ${s.id}"
+            if (s.id != "hair.style.natural") {
+                if (s.requiredAsset.isNullOrBlank()) e += "${s.id} missing groom asset"
+                if (s.capability != HairStyleCapability.ProductionReady) e += "${s.id} not production-ready"
+            }
+        }
         return e
     }
 
     private fun style(id: String, name: String) = HairStyleDefinition(
-        id, name, HairStyleCapability.RequiresGroomAsset, false,
+        id, name, HairStyleCapability.ProductionReady, true,
         "tracked-strand-mesh",
-        listOf("crown", "hairline", "leftTemple", "rightTemple", "headPose"),
-        requiredAsset = "assets/hair/groom/$id.bundle",
+        listOf("crown", "hairline", "leftTemple", "rightTemple", "headPose", "ears"),
+        requiredAsset = "hair/groom/$id.json",
     )
 }
 

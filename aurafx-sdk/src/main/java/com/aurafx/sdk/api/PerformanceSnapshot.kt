@@ -17,4 +17,9 @@ data class PerformanceSnapshot(
     val lastCameraFrameTimestampNs: Long?,
     val lastIngress: FrameIngress = FrameIngress.NONE,
     val pipelineAdmitted: Long = 0,
+    val videoEncodeTimeMs: Float? = null,
+    val lastExportMs: Float? = null,
+    val lastPhotoCaptureMs: Float? = null,
+    val encoderFrames: Long = 0,
+    val encoderDroppedFrames: Long = 0,
 )

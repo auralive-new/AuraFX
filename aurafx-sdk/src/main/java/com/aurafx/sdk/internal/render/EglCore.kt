@@ -28,7 +28,8 @@ internal class EglCore {
         if (!EGL14.eglInitialize(display, version, 0, version, 1)) {
             throw EglException("eglInitialize failed: 0x${Integer.toHexString(EGL14.eglGetError())}")
         }
-        config = chooseConfig()
+        config = chooseConfig(recordable = true)
+
         val attribs = intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 3, EGL14.EGL_NONE)
         context = EGL14.eglCreateContext(display, config, EGL14.EGL_NO_CONTEXT, attribs, 0)
         if (context == EGL14.EGL_NO_CONTEXT) {
@@ -36,7 +37,8 @@ internal class EglCore {
         }
     }
 
-    private fun chooseConfig(): EGLConfig {
+    private fun chooseConfig(recordable: Boolean): EGLConfig {
+        val recordableAttr = if (recordable) intArrayOf(0x3142, 1) else intArrayOf()
         val attribs = intArrayOf(
             EGL14.EGL_RED_SIZE, 8,
             EGL14.EGL_GREEN_SIZE, 8,
@@ -44,14 +46,15 @@ internal class EglCore {
             EGL14.EGL_ALPHA_SIZE, 8,
             EGL14.EGL_RENDERABLE_TYPE, 0x0040, // EGL_OPENGL_ES3_BIT_KHR
             EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
-            EGL14.EGL_NONE,
-        )
+        ) + recordableAttr + intArrayOf(EGL14.EGL_NONE)
         val configs = arrayOfNulls<EGLConfig>(1)
         val num = IntArray(1)
-        if (!EGL14.eglChooseConfig(display, attribs, 0, configs, 0, 1, num, 0) || num[0] <= 0) {
-            throw EglException("eglChooseConfig failed: 0x${Integer.toHexString(EGL14.eglGetError())}")
+        val ok = EGL14.eglChooseConfig(display, attribs, 0, configs, 0, 1, num, 0) && num[0] > 0
+        if (ok) {
+            return configs[0] ?: throw EglException("EGLConfig was null")
         }
-        return configs[0] ?: throw EglException("EGLConfig was null")
+        if (recordable) return chooseConfig(recordable = false)
+        throw EglException("eglChooseConfig failed: 0x${Integer.toHexString(EGL14.eglGetError())}")
     }
 
     fun createWindowSurface(surface: Surface): EGLSurface {

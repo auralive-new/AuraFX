@@ -25,7 +25,9 @@ class SceneCatalogTest {
         val ids = BackgroundCatalog.items.map { it.id }
         assertThat(ids.toSet()).hasSize(20)
         assertThat(HairCatalog.style("hair.style.natural")!!.productionRealistic).isTrue()
-        assertThat(HairCatalog.styles.count { it.capability == HairStyleCapability.RequiresGroomAsset }).isEqualTo(12)
+        assertThat(HairCatalog.styles.count { it.productionRealistic }).isEqualTo(13)
+        assertThat(HairCatalog.styles.count { it.capability == HairStyleCapability.RequiresGroomAsset }).isEqualTo(0)
+        assertThat(Step5Outstanding.REPLACEMENT_HAIRSTYLES_REQUIRING_GROOM).isEqualTo(0)
         assertThat(AuraFxEffectOrder.gpuIds).containsExactly(
             AuraFxEffectOrder.SEGMENTATION,
             AuraFxEffectOrder.BACKGROUND,

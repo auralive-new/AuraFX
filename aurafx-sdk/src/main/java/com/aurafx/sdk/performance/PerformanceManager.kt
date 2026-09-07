@@ -37,6 +37,11 @@ class PerformanceManager(
     private var lastTimestampNs: Long? = null
     private var lastIngress: FrameIngress = FrameIngress.NONE
     private var pipelineAdmitted: Long = 0
+    private var emaEncodeNs = 0f
+    private var lastExportNs: Long? = null
+    private var lastPhotoNs: Long? = null
+    private var encoderFrames = 0L
+    private var encoderDropped = 0L
 
     fun markCameraStart() {
         if (!enabled) return
@@ -93,6 +98,29 @@ class PerformanceManager(
         synchronized(lock) { droppedFrames += 1 }
     }
 
+    fun onEncoderFrame(encodeNs: Long) {
+        if (!enabled) return
+        synchronized(lock) {
+            encoderFrames += 1
+            emaEncodeNs = if (emaEncodeNs == 0f) encodeNs.toFloat() else emaEncodeNs * 0.9f + encodeNs.toFloat() * 0.1f
+        }
+    }
+
+    fun onEncoderDropped() {
+        if (!enabled) return
+        synchronized(lock) { encoderDropped += 1 }
+    }
+
+    fun markExportNs(durationNs: Long) {
+        if (!enabled) return
+        synchronized(lock) { lastExportNs = durationNs }
+    }
+
+    fun markPhotoNs(durationNs: Long) {
+        if (!enabled) return
+        synchronized(lock) { lastPhotoNs = durationNs }
+    }
+
     fun markEffectLoadNs(durationNs: Long) {
         if (!enabled) return
         synchronized(lock) { lastEffectLoadNs = durationNs }
@@ -118,6 +146,11 @@ class PerformanceManager(
                 lastCameraFrameTimestampNs = lastTimestampNs,
                 lastIngress = lastIngress,
                 pipelineAdmitted = pipelineAdmitted,
+                videoEncodeTimeMs = emaEncodeNs.takeIf { encoderFrames > 0L }?.div(1_000_000f),
+                lastExportMs = lastExportNs?.let { it / 1_000_000f },
+                lastPhotoCaptureMs = lastPhotoNs?.let { it / 1_000_000f },
+                encoderFrames = encoderFrames,
+                encoderDroppedFrames = encoderDropped,
             )
         }
     }

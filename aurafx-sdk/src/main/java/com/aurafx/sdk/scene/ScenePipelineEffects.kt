@@ -11,6 +11,7 @@ import com.aurafx.sdk.internal.AuraFxLog
 import com.aurafx.sdk.internal.render.GlFramebuffer
 import com.aurafx.sdk.internal.render.ShaderProgram
 import com.aurafx.sdk.internal.render.checkGl
+import com.aurafx.sdk.beauty.allFinite
 import com.aurafx.sdk.vision.TrackingData
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -200,9 +201,13 @@ class HairPipelineEffect(private val rig: HairRig) : Effect {
     private var resolve: ShaderProgram? = null
     private var copy2d: ShaderProgram? = null
     private var hair: ShaderProgram? = null
+    private var groom: ShaderProgram? = null
     private val resolved = GlFramebuffer()
     private val out = GlFramebuffer()
     private val quad = QuadGpu()
+    private var groomVao = 0
+    private var groomVbo = 0
+    private var groomIbo = 0
     private var lastW = 0
     private var lastH = 0
     private var attached = false
@@ -211,33 +216,97 @@ class HairPipelineEffect(private val rig: HairRig) : Effect {
         resolve = ShaderProgram(SceneShaders.VERT_RESOLVE, SceneShaders.FRAG_OES)
         copy2d = ShaderProgram(SceneShaders.VERT_BLIT, SceneShaders.FRAG_COPY)
         hair = ShaderProgram(SceneShaders.VERT_BLIT, SceneShaders.FRAG_HAIR)
+        groom = ShaderProgram(SceneShaders.VERT_GROOM, SceneShaders.FRAG_GROOM)
         quad.create()
+        val va = IntArray(1)
+        val vb = IntArray(1)
+        val ib = IntArray(1)
+        GLES30.glGenVertexArrays(1, va, 0)
+        GLES30.glGenBuffers(1, vb, 0)
+        GLES30.glGenBuffers(1, ib, 0)
+        groomVao = va[0]
+        groomVbo = vb[0]
+        groomIbo = ib[0]
         attached = true
-        AuraFxLog.i("HairPipelineEffect attached")
+        AuraFxLog.i("HairPipelineEffect attached (color + procedural grooms)")
     }
 
     override fun process(frame: FrameContext, tracking: TrackingData) {
         if (!attached) return
         val snap = rig.snapshot()
         if (snap.isIdentity()) return
+        val wantsColor = snap.wantsColor()
+        val wantsStyle = snap.wantsStyle()
         val mask = tracking.segmentation
-        if (mask == null || mask.hairCoverage < 0.002f || frame.segmentationTextureId == 0) return
+        val hasMask = mask != null && mask.inBounds() && frame.segmentationTextureId != 0
+        if (wantsColor && (!hasMask || mask!!.hairCoverage < 0.002f) && !wantsStyle) return
         ensure(frame.width, frame.height)
         resolveOrCopy(frame, resolve, copy2d, resolved, quad.vao)
         val rgb = HairCatalog.colorRgb(snap.color, floatArrayOf(snap.customR, snap.customG, snap.customB))
-        val program = hair ?: return
         out.bind()
-        program.use()
-        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, resolved.tex)
-        GLES30.glUniform1i(program.loc("uImage"), 0)
-        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, frame.segmentationTextureId)
-        GLES30.glUniform1i(program.loc("uMask"), 1)
-        GLES30.glUniform3f(program.loc("uHairCol"), rgb[0], rgb[1], rgb[2])
-        GLES30.glUniform1f(program.loc("uIntensity"), snap.intensity)
-        GLES30.glBindVertexArray(quad.vao)
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        if (wantsColor && hasMask && mask!!.hairCoverage >= 0.002f) {
+            val program = hair ?: return
+            program.use()
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, resolved.tex)
+            GLES30.glUniform1i(program.loc("uImage"), 0)
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, frame.segmentationTextureId)
+            GLES30.glUniform1i(program.loc("uMask"), 1)
+            GLES30.glUniform3f(program.loc("uHairCol"), rgb[0], rgb[1], rgb[2])
+            GLES30.glUniform1f(program.loc("uIntensity"), snap.intensity)
+            GLES30.glBindVertexArray(quad.vao)
+            GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        } else {
+            val program = copy2d ?: return
+            program.use()
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, resolved.tex)
+            GLES30.glUniform1i(program.loc("uTexture"), 0)
+            GLES30.glBindVertexArray(quad.vao)
+            GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        }
+        if (wantsStyle) {
+            val lm = tracking.landmarks
+            if (lm != null && lm.count >= 468 && lm.allFinite()) {
+                val mesh = HairGroomMeshBuilder.build(snap.styleId, lm)
+                if (mesh.indices.isNotEmpty() && mesh.allFinite()) {
+                    val program = groom ?: return
+                    program.use()
+                    GLES30.glEnable(GLES30.GL_BLEND)
+                    GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
+                    GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+                    GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, resolved.tex)
+                    GLES30.glUniform1i(program.loc("uImage"), 0)
+                    GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+                    GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, if (hasMask) frame.segmentationTextureId else resolved.tex)
+                    GLES30.glUniform1i(program.loc("uMask"), 1)
+                    GLES30.glUniform3f(program.loc("uHairCol"), rgb[0], rgb[1], rgb[2])
+                    GLES30.glUniform1f(program.loc("uIntensity"), snap.intensity.coerceAtLeast(0.55f))
+                    GLES30.glUniform1f(program.loc("uLightAzimuth"), 0.25f)
+                    val fb: FloatBuffer = ByteBuffer.allocateDirect(mesh.vertices.size * 4)
+                        .order(ByteOrder.nativeOrder()).asFloatBuffer().put(mesh.vertices)
+                    fb.position(0)
+                    val ib: java.nio.IntBuffer = ByteBuffer.allocateDirect(mesh.indices.size * 4)
+                        .order(ByteOrder.nativeOrder()).asIntBuffer().put(mesh.indices)
+                    ib.position(0)
+                    GLES30.glBindVertexArray(groomVao)
+                    GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, groomVbo)
+                    GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, mesh.vertices.size * 4, fb, GLES30.GL_DYNAMIC_DRAW)
+                    val stride = HairGroomMesh.STRIDE * 4
+                    GLES30.glEnableVertexAttribArray(0)
+                    GLES30.glVertexAttribPointer(0, 2, GLES30.GL_FLOAT, false, stride, 0)
+                    GLES30.glEnableVertexAttribArray(1)
+                    GLES30.glVertexAttribPointer(1, 2, GLES30.GL_FLOAT, false, stride, 8)
+                    GLES30.glEnableVertexAttribArray(2)
+                    GLES30.glVertexAttribPointer(2, 2, GLES30.GL_FLOAT, false, stride, 16)
+                    GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, groomIbo)
+                    GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size * 4, ib, GLES30.GL_DYNAMIC_DRAW)
+                    GLES30.glDrawElements(GLES30.GL_TRIANGLES, mesh.indices.size, GLES30.GL_UNSIGNED_INT, 0)
+                    GLES30.glDisable(GLES30.GL_BLEND)
+                }
+            }
+        }
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         frame.processedTextureId = out.tex
         frame.processedIsOes = false
@@ -246,9 +315,13 @@ class HairPipelineEffect(private val rig: HairRig) : Effect {
 
     override fun onDetach() {
         attached = false
-        resolve?.release(); copy2d?.release(); hair?.release()
-        resolve = null; copy2d = null; hair = null
+        resolve?.release(); copy2d?.release(); hair?.release(); groom?.release()
+        resolve = null; copy2d = null; hair = null; groom = null
         resolved.release(); out.release(); quad.release()
+        if (groomVao != 0) GLES30.glDeleteVertexArrays(1, intArrayOf(groomVao), 0)
+        if (groomVbo != 0) GLES30.glDeleteBuffers(1, intArrayOf(groomVbo), 0)
+        if (groomIbo != 0) GLES30.glDeleteBuffers(1, intArrayOf(groomIbo), 0)
+        groomVao = 0; groomVbo = 0; groomIbo = 0
     }
 
     private fun ensure(w: Int, h: Int) {

@@ -1,0 +1,6 @@
+{
+  "id": "hair.style.volume",
+  "kind": "tracked-strand-mesh",
+  "renderer": "HairGroomMeshBuilder",
+  "placeholder": false
+}

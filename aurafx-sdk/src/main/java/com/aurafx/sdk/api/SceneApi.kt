@@ -64,7 +64,11 @@ data class HairParameters(
         if (styleId.isBlank()) styleId = "hair.style.natural"
     }
 
-    fun isIdentity(): Boolean = !enabled || intensity <= 0f
+    fun wantsStyle(): Boolean = enabled && styleId.isNotBlank() && styleId != "hair.style.natural"
+
+    fun wantsColor(): Boolean = enabled && intensity > 0f
+
+    fun isIdentity(): Boolean = !enabled || (!wantsStyle() && intensity <= 0f)
 
     fun reset() {
         enabled = false

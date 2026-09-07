@@ -17,6 +17,7 @@ import com.aurafx.sdk.api.BodyParameters
 import com.aurafx.sdk.api.BeautyParameters
 import com.aurafx.sdk.api.FaceShapeParameters
 import com.aurafx.sdk.api.LensFacing
+import com.aurafx.sdk.api.CapturePolicy
 import com.aurafx.sdk.api.FilterParameters
 import com.aurafx.sdk.api.HairParameters
 import com.aurafx.sdk.api.LightingParameters
@@ -53,15 +54,19 @@ import com.aurafx.sdk.performance.PerformanceManager
 import com.aurafx.sdk.pipeline.FramePipeline
 import com.aurafx.sdk.pipeline.LiveIngressPolicy
 import com.aurafx.sdk.vision.VisionProcessor
+import com.aurafx.sdk.scene.BackgroundCatalog
 import com.aurafx.sdk.scene.BackgroundEngine
 import com.aurafx.sdk.scene.BackgroundPipelineEffect
 import com.aurafx.sdk.scene.BackgroundRig
+import com.aurafx.sdk.scene.BodyCatalog
 import com.aurafx.sdk.scene.BodyEngine
 import com.aurafx.sdk.scene.BodyPipelineEffect
 import com.aurafx.sdk.scene.BodyRig
+import com.aurafx.sdk.scene.HairCatalog
 import com.aurafx.sdk.scene.HairEngine
 import com.aurafx.sdk.scene.HairPipelineEffect
 import com.aurafx.sdk.scene.HairRig
+import com.aurafx.sdk.scene.LightingCatalog
 import com.aurafx.sdk.scene.LightingEngine
 import com.aurafx.sdk.scene.LightingPipelineEffect
 import com.aurafx.sdk.scene.LightingRig
@@ -240,6 +245,7 @@ class AuraFxSession internal constructor(
 
     fun switchCamera(): AuraFxResult<Unit> {
         if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        CapturePolicy.denySwitchWhileRecording(renderer.isRecording())?.let { return AuraFxResult.Err(it) }
         val owner = lifecycleOwner
             ?: return AuraFxResult.Err(AuraFxError.InvalidState("Camera is not started"))
         val next = if (lastFacing == LensFacing.FRONT) LensFacing.BACK else LensFacing.FRONT
@@ -376,6 +382,13 @@ class AuraFxSession internal constructor(
         return this
     }
 
+    fun setHairStyle(styleId: String): AuraFxResult<Unit> {
+        if (!hairEngine.setStyle(styleId)) {
+            return AuraFxResult.Err(AuraFxError.UnknownEffect("Unknown hairstyle id: $styleId"))
+        }
+        return AuraFxResult.Ok(Unit)
+    }
+
     fun body(block: BodyParameters.() -> Unit): AuraFxSession {
         bodyEngine.apply(block)
         return this
@@ -448,6 +461,49 @@ class AuraFxSession internal constructor(
     fun arParameters(): ARParameters = arEngine.snapshot()
 
     fun arCatalog() = arEngine.catalog()
+
+    fun hairCatalog() = HairCatalog.styles
+    fun backgroundCatalog() = BackgroundCatalog.items
+    fun lightingCatalog() = LightingCatalog.modes
+    fun bodyCatalog() = BodyCatalog.items
+
+    fun capturePhoto(output: java.io.File, onDone: (AuraFxResult<com.aurafx.sdk.api.CapturedPhoto>) -> Unit) {
+        if (released.get()) {
+            onDone(AuraFxResult.Err(AuraFxError.InvalidState("Session released")))
+            return
+        }
+        renderer.captureProcessedPhoto(output) { result ->
+            mainHandler.post { onDone(result) }
+        }
+    }
+
+    fun startRecording(output: java.io.File, recordAudio: Boolean = true): AuraFxResult<Unit> {
+        if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        CapturePolicy.denyRecordWithoutPreview(previewReady)?.let { return AuraFxResult.Err(it) }
+        return renderer.startRecording(output, recordAudio)
+    }
+
+    fun stopRecording(onDone: (AuraFxResult<com.aurafx.sdk.api.RecordedVideo>) -> Unit) {
+        if (released.get()) {
+            onDone(AuraFxResult.Err(AuraFxError.InvalidState("Session released")))
+            return
+        }
+        renderer.stopRecording(onDone)
+    }
+
+    fun isRecording(): Boolean = renderer.isRecording()
+
+    fun resetAll(): AuraFxSession {
+        resetBeauty()
+        resetMakeup()
+        resetFilter()
+        resetBackground()
+        resetHair()
+        resetBody()
+        resetLighting()
+        resetAREffects()
+        return this
+    }
 
     fun lightingParameters(): LightingParameters = lightingEngine.snapshot()
 

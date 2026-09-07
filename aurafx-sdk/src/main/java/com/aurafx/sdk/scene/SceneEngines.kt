@@ -64,6 +64,11 @@ class HairEngine(private val rig: HairRig) {
     fun apply(block: HairParameters.() -> Unit) = rig.apply(block)
     fun reset() = rig.reset()
     fun snapshot() = rig.snapshot()
+    fun setStyle(styleId: String): Boolean {
+        if (HairCatalog.style(styleId) == null) return false
+        rig.apply { enabled = true; this.styleId = styleId }
+        return true
+    }
 }
 
 class BodyEngine(private val rig: BodyRig) {

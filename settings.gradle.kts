@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "AuraFX"
 include(":aurafx-sdk")
 include(":aurafx-sample")
+include(":aurafx-studio")

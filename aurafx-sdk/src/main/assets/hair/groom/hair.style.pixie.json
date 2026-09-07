@@ -1,0 +1,6 @@
+{
+  "id": "hair.style.pixie",
+  "kind": "tracked-strand-mesh",
+  "renderer": "HairGroomMeshBuilder",
+  "placeholder": false
+}

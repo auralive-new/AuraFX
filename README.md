@@ -1,72 +1,61 @@
 # AuraFX
 
-Standalone Android SDK for a real-time camera → GPU frame pipeline. This repository is **not** AuraLive. A future AuraLive app should depend on the `aurafx-sdk` module (AAR), not copy these sources.
+Standalone Android SDK for a real-time camera → GPU beauty/makeup/filter/scene/AR pipeline, plus Studio capture and a basic editor.
 
-Roadmap (locked):
+This repository is **not** AuraLive. Do not copy these sources into AuraLive until Step 8.
+
+Roadmap:
 
 1. Core + Camera Pipeline
 2. Skin + Beauty + Face Shape
 3. Professional Makeup
 4. Filters
 5. Background + Hair + Body + Lighting
-6. **AR / Effects / Masks** ← this step
-7. Studio + Video + Performance + QA
-8. AuraLive Integration + Production Release
-
-Step 6 adds a GPU AR pass after filters (procedural accessories, face paint, particles, landmark expression). It does **not** implement studio/video QA (Step 7) or AuraLive.
+6. AR / Effects / Masks
+7. **Studio + Video + Performance + QA** ← this step
+8. AuraLive Integration (not started)
 
 ## Modules
 
 | Module | Role |
 |---|---|
 | `aurafx-sdk` | Production SDK library |
-| `aurafx-sample` | Independent debug harness (not AuraLive Preview) |
+| `aurafx-sample` | Debug harness (not AuraLive) |
+| `aurafx-studio` | Independent Studio app using **only** public SDK APIs |
 
-Step 2 skin/beauty/face-shape: [`docs/STEP_2_BEAUTY_FACE.md`](docs/STEP_2_BEAUTY_FACE.md)
-
-```kotlin
-session.skin { smoothness = 0.3f }
-session.beauty { toothWhiten = 0.4f; circles = 0.3f }
-session.faceShape { vFace = 0.2f; eyeEnlarge = 0.15f }
-session.makeup { lipstick { intensity = 0.5f }; eyeliner { style = EyelinerStyle.Classic; intensity = 0.6f } }
-session.applyMakeupPreset(MakeupPreset.Classic)
-session.setFilter("warm.golden", 0.65f)
-session.filter { id = "lut.film_warm"; intensity = 0.5f }
-session.clearFilter()
-session.background { enabled = true; id = "bg.blur.soft"; intensity = 0.7f }
-session.hair { enabled = true; color = HairColorId.Auburn; intensity = 0.55f }
-session.body { enabled = true; slim = 0.2f }
-session.lighting { enabled = true; mode = LightingMode.Soft; intensity = 0.45f }
-session.setAREffect("ar.cupid", 0.75f)
-session.clearAREffect()
-```
-
-## Public API
+## Public API (Studio)
 
 ```kotlin
 AuraFx.initialize(context)
 val session = AuraFx.createSession(context).getOrNull()!!
 session.attachPreview(surface, width, height)
-session.startCamera(lifecycleOwner, LensFacing.FRONT)
-session.switchCamera()
-session.stopCamera()
-session.processFrame(input) // optional CPU ingress; camera path does not use this
+session.startCamera(lifecycleOwner, LensFacing.FRONT) // or BACK
+session.switchCamera() // refused while recording
+session.skin { smoothness = 0.3f }
+session.faceShape { vFace = 0.2f }
+session.makeup { lipstick { intensity = 0.5f } }
+session.setFilter("warm.golden", 0.65f)
+session.background { enabled = true; id = "bg.blur.soft"; intensity = 0.7f }
+session.setHairStyle("hair.style.bob")
+session.hair { enabled = true; color = HairColorId.Auburn; intensity = 0.55f }
+session.body { enabled = true; slim = 0.2f }
+session.lighting { enabled = true; mode = LightingMode.Soft; intensity = 0.45f }
+session.setAREffect("ar.cupid", 0.75f)
+session.capturePhoto(file) { /* processed JPEG */ }
+session.startRecording(file, recordAudio = true)
+session.stopRecording { /* processed MP4 */ }
+session.resetAll()
 session.performanceSnapshot()
 session.release()
-AuraFx.release()
 ```
 
-The host app requests `CAMERA`. The SDK checks permission and returns `AuraFxError.PermissionDenied` if it is missing.
+Photo and video use the **final GPU frame**, not a raw camera dump.
 
 ## Pipeline
 
-CameraX (single bind) → GPU Preview + ImageAnalysis → face/multiclass/pose → background → makeup → beauty → hair color → body warp → lighting → FilterEngine → **AR** → blit.
+CameraX (single bind) → vision → background → makeup → beauty → hair (color + grooms) → body → lighting → filter → AR → preview / encoder.
 
-Filter docs: [`docs/STEP_4_FILTERS.md`](docs/STEP_4_FILTERS.md)
-Scene docs: [`docs/STEP_5_BACKGROUND_HAIR_BODY_LIGHTING.md`](docs/STEP_5_BACKGROUND_HAIR_BODY_LIGHTING.md)
-AR docs: [`docs/STEP_6_AR_EFFECTS_MASKS.md`](docs/STEP_6_AR_EFFECTS_MASKS.md)
-
-Front-camera mirroring is applied in the blit shader. Frame timestamps come from `SurfaceTexture.timestamp`.
+Docs: [`docs/STEP_7_FINAL_SDK_QA.md`](docs/STEP_7_FINAL_SDK_QA.md)
 
 ## Build
 
@@ -74,18 +63,10 @@ Requires JDK 17+ and Android SDK 35.
 
 ```bash
 export ANDROID_HOME=/path/to/android-sdk
-./gradlew :aurafx-sdk:assembleRelease :aurafx-sdk:test :aurafx-sample:assembleDebug
+./gradlew :aurafx-sdk:assembleRelease :aurafx-sdk:test :aurafx-studio:assembleDebug
 ```
 
-Install the harness on a **physical** device (Step 1B):
+Install Studio on a **physical** device for visual QA. Unit tests do not prove realism.
 
-```bash
-./gradlew :aurafx-sample:installDebug
-adb logcat -s AuraFX
-```
-
-Physical-device verification is required for a visual Step 1/2 PASS. Compilation and JVM unit tests do **not** prove realism on a face.
-
-## Metrics
-
-`PerformanceSnapshot` reports only observed values. `gpuTimeMs` is null when `GL_TIME_ELAPSED` queries are unsupported. `cameraStartupMs` is null until the first presented frame after `startCamera`.
+REFERENCE SOURCE = NOT AVAILABLE until Tango recordings are in the workspace.
+PHYSICAL DEVICE = PENDING until a phone is connected.

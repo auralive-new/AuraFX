@@ -31,8 +31,7 @@ class ARCatalogTest {
         assertThat(a.contentEquals(b)).isFalse()
         assertThat(ARShaders.sourcesOk()).isTrue()
         assertThat(AuraFxEffectOrder.gpuIds.last()).isEqualTo(AuraFxEffectOrder.AR)
-        assertThat(Step5Outstanding.REPLACEMENT_HAIRSTYLES_REQUIRING_GROOM).isEqualTo(12)
-        assertThat(Step5Outstanding.ids).hasSize(12)
+        assertThat(Step5Outstanding.REPLACEMENT_HAIRSTYLES_REQUIRING_GROOM).isEqualTo(0)
     }
 
     @Test

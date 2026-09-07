@@ -1,0 +1,6 @@
+{
+  "id": "hair.style.shag",
+  "kind": "tracked-strand-mesh",
+  "renderer": "HairGroomMeshBuilder",
+  "placeholder": false
+}

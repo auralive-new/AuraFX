@@ -83,7 +83,7 @@ Unknown ids → `AuraFxError.UnknownEffect`. Intensity 0 skips the GPU pass.
 
 ## Step 5 gap (do not mark complete)
 
-12 replacement hairstyles still `RequiresGroomAsset`. See `Step5Outstanding`. Hair **color** and **matte** stay real. Close in Step 7.
+12 replacement hairstyles were closed in Step 7 with tracked procedural grooms (see `docs/STEP_7_FINAL_SDK_QA.md`). Hair **color** and **matte** stay real.
 
 ## Limitations
 

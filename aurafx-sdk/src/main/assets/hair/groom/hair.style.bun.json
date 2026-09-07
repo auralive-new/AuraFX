@@ -1,0 +1,6 @@
+{
+  "id": "hair.style.bun",
+  "kind": "tracked-strand-mesh",
+  "renderer": "HairGroomMeshBuilder",
+  "placeholder": false
+}
