@@ -47,6 +47,8 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private enum class Category { Beauty, FaceShape, Makeup, Filters, Background, Hair, Body, Lighting, AR }
 
+    private var category = Category.Beauty
+
     private val metricsTicker = object : Runnable {
         override fun run() {
             val snap = session?.performanceSnapshot()
