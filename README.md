@@ -68,7 +68,7 @@ export ANDROID_HOME=/path/to/android-sdk
 
 Install Studio on a **physical** device for visual QA. Unit tests do not prove realism.
 
-Named options from the prior written inventory: [`docs/REFERENCE_FEATURE_INVENTORY.md`](docs/REFERENCE_FEATURE_INVENTORY.md).
+Named options from the supplied inventory: [`docs/REFERENCE_FEATURE_INVENTORY.md`](docs/REFERENCE_FEATURE_INVENTORY.md) · completion: [`docs/FINAL_FEATURE_COMPLETION_REPORT.md`](docs/FINAL_FEATURE_COMPLETION_REPORT.md).
 
 Video audit (six recordings were not in this workspace): [`docs/REFERENCE_VIDEO_INVENTORY.md`](docs/REFERENCE_VIDEO_INVENTORY.md).
 PHYSICAL DEVICE = PENDING until a phone is connected.
