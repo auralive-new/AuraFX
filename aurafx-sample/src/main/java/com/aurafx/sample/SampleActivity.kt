@@ -355,6 +355,34 @@ class SampleActivity : AppCompatActivity(), SurfaceHolder.Callback {
         row("Lighting", read = { target.lightingParameters().intensity }, write = { v ->
             target.lighting { enabled = v > 0f; intensity = v }
         })
+        val arLabel = TextView(this)
+        arLabel.setTextColor(ContextCompat.getColor(this, R.color.text))
+        arLabel.textSize = 12f
+        fun showAr() {
+            val p = target.arParameters()
+            arLabel.text = "AR  ${p.effectId ?: "none"}  i=${"%.2f".format(p.intensity)}"
+        }
+        showAr()
+        host.addView(arLabel)
+        val nextAr = android.widget.Button(this)
+        nextAr.text = "Next AR effect"
+        nextAr.setOnClickListener {
+            val ids = target.arCatalog().map { it.id }
+            val idx = ids.indexOf(target.arParameters().effectId)
+            val id = ids[(idx + 1 + ids.size) % ids.size]
+            target.setAREffect(id, 0.85f)
+            showAr()
+        }
+        host.addView(nextAr)
+        val clearAr = android.widget.Button(this)
+        clearAr.text = "Clear AR"
+        clearAr.setOnClickListener { target.clearAREffect(); showAr() }
+        host.addView(clearAr)
+        row("AR intensity", read = { target.arParameters().intensity }, write = { v ->
+            val id = target.arParameters().effectId ?: target.arCatalog().first().id
+            target.setAREffect(id, v)
+            showAr()
+        })
         val resetMk = android.widget.Button(this)
         resetMk.text = "Classic makeup"
         resetMk.setOnClickListener {

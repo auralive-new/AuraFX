@@ -1,6 +1,6 @@
 # AuraFX Step 5 — Background, Hair, Body, Lighting
 
-Standalone SDK. No AuraLive. No Step 6 AR/effects catalog.
+Standalone SDK. No AuraLive. Step 6 AR/effects is a later GPU pass.
 
 Physical-device visual QA is **PENDING**. Unit tests do **not** prove on-device edge quality.
 
@@ -36,6 +36,7 @@ CameraX
   → BodyPipelineEffect            (localized pose warp)
   → LightingPipelineEffect
   → FilterPipelineEffect
+  → ARPipelineEffect           (Step 6)
   → Present
 ```
 
@@ -82,7 +83,7 @@ Every field is consumed by the matching GPU effect.
 
 ## Known limitations (unsupported as production-real)
 
-- Volumetric / tracked replacement hairstyles without groom assets.
+- **12 replacement hairstyles** (`Step5Outstanding`) require real groom/strand assets. They are **not** complete. Close in **Step 7** QA. Hair matte + hair color remain real.
 - Image-file backgrounds (architecture only; no placeholder bitmaps).
 - Instance-aware multi-person body warp.
 - Dedicated neural hair-strand simulation.

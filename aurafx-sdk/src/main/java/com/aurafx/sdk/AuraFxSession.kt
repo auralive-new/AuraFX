@@ -7,6 +7,7 @@ import android.view.Surface
 import android.view.WindowManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.aurafx.sdk.api.ARParameters
 import com.aurafx.sdk.api.AuraFxError
 import com.aurafx.sdk.api.AuraFxInputFrame
 import com.aurafx.sdk.api.AuraFxResult
@@ -24,12 +25,16 @@ import com.aurafx.sdk.api.MakeupPreset
 import com.aurafx.sdk.api.PerformanceSnapshot
 import com.aurafx.sdk.api.SessionConfig
 import com.aurafx.sdk.api.SkinParameters
-import com.aurafx.sdk.beauty.BeautyEngine
+import com.aurafx.sdk.ar.AREngine
+import com.aurafx.sdk.ar.ARPipelineEffect
+import com.aurafx.sdk.ar.ARRig
+import com.aurafx.sdk.ar.AREffectCatalog
 import com.aurafx.sdk.filter.FilterCatalog
 import com.aurafx.sdk.filter.FilterDefinition
 import com.aurafx.sdk.filter.FilterEngine
 import com.aurafx.sdk.filter.FilterPipelineEffect
 import com.aurafx.sdk.filter.FilterRig
+import com.aurafx.sdk.beauty.BeautyEngine
 import com.aurafx.sdk.beauty.BeautyPipelineEffect
 import com.aurafx.sdk.beauty.BeautyRig
 import com.aurafx.sdk.beauty.FaceShapeEngine
@@ -97,6 +102,8 @@ class AuraFxSession internal constructor(
     val hairEngine = HairEngine(hairRig)
     val bodyEngine = BodyEngine(bodyRig)
     val lightingEngine = LightingEngine(lightingRig)
+    val arRig = ARRig()
+    val arEngine = AREngine(arRig)
     val performance = PerformanceManager(
         enabled = instrumentationEnabled,
         nativeHeapProbe = { DeviceCapabilities.nativeHeapAllocatedBytes() },
@@ -161,6 +168,7 @@ class AuraFxSession internal constructor(
         effects.register(BodyPipelineEffect(bodyRig))
         effects.register(LightingPipelineEffect(lightingRig))
         effects.register(FilterPipelineEffect(filterRig))
+        effects.register(ARPipelineEffect(arRig))
         if (config.enableFaceLandmarks) {
             val analyzer = MediaPipeSceneAnalyzer(
                 context = appContext,
@@ -401,6 +409,46 @@ class AuraFxSession internal constructor(
     fun backgroundParameters(): BackgroundParameters = backgroundEngine.snapshot()
     fun hairParameters(): HairParameters = hairEngine.snapshot()
     fun bodyParameters(): BodyParameters = bodyEngine.snapshot()
+    fun ar(block: ARParameters.() -> Unit): AuraFxSession {
+        val draft = arEngine.snapshot()
+        block(draft)
+        draft.clampInPlace()
+        val id = draft.effectId
+        if (id != null && AREffectCatalog.require(id) == null) return this
+        arEngine.apply {
+            effectId = draft.effectId
+            intensity = draft.intensity
+        }
+        return this
+    }
+
+    fun setAREffect(effectId: String, intensity: Float = 0.85f): AuraFxResult<Unit> {
+        if (AREffectCatalog.require(effectId) == null) {
+            return AuraFxResult.Err(AuraFxError.UnknownEffect("Unknown AR effect id: $effectId"))
+        }
+        arEngine.setAREffect(effectId, intensity)
+        return AuraFxResult.Ok(Unit)
+    }
+
+    fun setAREffectIntensity(intensity: Float): AuraFxSession {
+        arEngine.setAREffectIntensity(intensity)
+        return this
+    }
+
+    fun clearAREffect(): AuraFxSession {
+        arEngine.clear()
+        return this
+    }
+
+    fun resetAREffects(): AuraFxSession {
+        arEngine.reset()
+        return this
+    }
+
+    fun arParameters(): ARParameters = arEngine.snapshot()
+
+    fun arCatalog() = arEngine.catalog()
+
     fun lightingParameters(): LightingParameters = lightingEngine.snapshot()
 
     fun filterParameters(): FilterParameters = filterEngine.parameters()

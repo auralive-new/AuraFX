@@ -46,4 +46,8 @@ sealed class AuraFxError {
     data class UnknownFilter(
         override val message: String,
     ) : AuraFxError()
+
+    data class UnknownEffect(
+        override val message: String,
+    ) : AuraFxError()
 }

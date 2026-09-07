@@ -8,12 +8,12 @@ Roadmap (locked):
 2. Skin + Beauty + Face Shape
 3. Professional Makeup
 4. Filters
-5. **Background + Hair + Body + Lighting** ← this step
-6. Complete AR / Effects / Masks
+5. Background + Hair + Body + Lighting
+6. **AR / Effects / Masks** ← this step
 7. Studio + Video + Performance + QA
 8. AuraLive Integration + Production Release
 
-Step 5 adds MediaPipe multiclass selfie segmentation, pose, GPU background/hair-color/body-warp/lighting. It does **not** implement AR/effects (Step 6) or AuraLive.
+Step 6 adds a GPU AR pass after filters (procedural accessories, face paint, particles, landmark expression). It does **not** implement studio/video QA (Step 7) or AuraLive.
 
 ## Modules
 
@@ -37,6 +37,8 @@ session.background { enabled = true; id = "bg.blur.soft"; intensity = 0.7f }
 session.hair { enabled = true; color = HairColorId.Auburn; intensity = 0.55f }
 session.body { enabled = true; slim = 0.2f }
 session.lighting { enabled = true; mode = LightingMode.Soft; intensity = 0.45f }
+session.setAREffect("ar.cupid", 0.75f)
+session.clearAREffect()
 ```
 
 ## Public API
@@ -58,10 +60,11 @@ The host app requests `CAMERA`. The SDK checks permission and returns `AuraFxErr
 
 ## Pipeline
 
-CameraX (single bind) → GPU Preview + ImageAnalysis → face/multiclass/pose → background → makeup → beauty → hair color → body warp → lighting → FilterEngine → blit.
+CameraX (single bind) → GPU Preview + ImageAnalysis → face/multiclass/pose → background → makeup → beauty → hair color → body warp → lighting → FilterEngine → **AR** → blit.
 
 Filter docs: [`docs/STEP_4_FILTERS.md`](docs/STEP_4_FILTERS.md)
 Scene docs: [`docs/STEP_5_BACKGROUND_HAIR_BODY_LIGHTING.md`](docs/STEP_5_BACKGROUND_HAIR_BODY_LIGHTING.md)
+AR docs: [`docs/STEP_6_AR_EFFECTS_MASKS.md`](docs/STEP_6_AR_EFFECTS_MASKS.md)
 
 Front-camera mirroring is applied in the blit shader. Frame timestamps come from `SurfaceTexture.timestamp`.
 
