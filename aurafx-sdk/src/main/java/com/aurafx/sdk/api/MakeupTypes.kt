@@ -31,4 +31,6 @@ enum class EyelinerStyle {
 
 enum class LashStyle { NaturalCurl, SoftVolume, Lifted, Defined, DollEyes, FullFan }
 
+enum class LipLook { GlossyPop, Lacquer, Ombre }
+
 enum class LensStyle { PureTone, GoldenGlint, SapphireInk, WarmGlint, KiwiPop, SilverMist }

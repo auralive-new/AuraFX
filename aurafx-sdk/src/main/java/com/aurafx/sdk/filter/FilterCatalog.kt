@@ -4,10 +4,6 @@ import com.aurafx.sdk.api.FilterCategory
 
 /**
  * Data-driven catalog. New looks are added here without changing the GPU core.
- *
- * Tango reference recordings/icons were not present in this repository or in
- * attached context. Extra vendor-named tiles that cannot be read are listed
- * as UNREADABLE in docs/STEP_4_FILTERS.md — they are not invented here.
  */
 object FilterCatalog {
     val filters: List<FilterDefinition> = listOf(
@@ -187,6 +183,63 @@ object FilterCatalog {
             balanceHighR = 0.22f, balanceShadowB = 0.22f, contrast = 0.12f,
             saturation = 1.08f, vignette = 0.12f, skinProtect = 0.88f,
         )),
+
+        scene("orbit.wrap", FilterCategory.Orbit360, "Orbit Wrap", ColorGrade(
+            contrast = 0.16f, saturation = 1.08f, vignette = 0.42f, bloom = 0.10f,
+            temperature = 0.08f, skinProtect = 0.82f,
+        ), sceneMode = 6),
+
+        scene("live.day_light", FilterCategory.Live, "Day Light", ColorGrade(
+            exposure = 0.14f, contrast = 0.08f, saturation = 1.06f, temperature = 0.06f,
+            shadows = 0.08f, highlights = -0.04f, skinProtect = 0.86f,
+        ), sceneMode = 0),
+        scene("live.neon_clouds", FilterCategory.Live, "Neon Clouds", ColorGrade(
+            saturation = 1.22f, bloom = 0.36f, temperature = -0.12f, contrast = 0.08f,
+            highlights = 0.10f, skinProtect = 0.80f,
+        ), sceneMode = 2),
+
+        scene("patterns.neon_pattern", FilterCategory.Patterns, "Neon Pattern", ColorGrade(
+            saturation = 1.18f, contrast = 0.12f, temperature = -0.08f, bloom = 0.12f,
+            skinProtect = 0.78f,
+        ), sceneMode = 3),
+
+        scene("blur.dream", FilterCategory.Blur, "Dream Blur", ColorGrade(
+            contrast = -0.14f, bloom = 0.28f, lift = 0.06f, saturation = 0.94f,
+            highlights = -0.04f, skinProtect = 0.84f,
+        ), sceneMode = 0),
+
+        scene("signature.prime", FilterCategory.Signature, "Prime", ColorGrade(
+            contrast = 0.18f, saturation = 1.12f, temperature = 0.14f, vignette = 0.16f,
+            shadows = 0.06f, grain = 0.06f, skinProtect = 0.88f,
+        ), sceneMode = 0),
+
+        scene("anime.cel", FilterCategory.Anime, "Cel Shade", ColorGrade(
+            contrast = 0.28f, saturation = 1.20f, highlights = 0.10f, shadows = -0.08f,
+            skinProtect = 0.74f,
+        ), sceneMode = 7),
+
+        scene("animal.leopard", FilterCategory.AnimalPrint, "Leopard", ColorGrade(
+            contrast = 0.10f, saturation = 1.08f, temperature = 0.16f, skinProtect = 0.92f,
+        ), sceneMode = 8),
+
+        scene("nature.desert", FilterCategory.Nature, "Desert", ColorGrade(
+            temperature = 0.38f, saturation = 1.10f, highlights = 0.10f, shadows = -0.06f,
+            vignette = 0.14f, skinProtect = 0.90f,
+        ), sceneMode = 4),
+
+        scene("scenery.rainy_street", FilterCategory.Scenery, "Rainy Street", ColorGrade(
+            temperature = -0.22f, contrast = 0.12f, saturation = 0.88f, lift = 0.04f,
+            vignette = 0.18f, grain = 0.08f, skinProtect = 0.84f,
+        ), sceneMode = 1),
+        scene("scenery.city_sunset", FilterCategory.Scenery, "City Sunset", ColorGrade(
+            temperature = 0.40f, tint = 0.08f, contrast = 0.14f, saturation = 1.16f,
+            highlights = 0.10f, vignette = 0.20f, skinProtect = 0.90f,
+        ), sceneMode = 0),
+
+        scene("rooms.canopy_bed", FilterCategory.Rooms, "Canopy Bed Interior", ColorGrade(
+            temperature = 0.22f, exposure = -0.06f, shadows = 0.12f, vignette = 0.32f,
+            saturation = 0.96f, bloom = 0.08f, skinProtect = 0.86f,
+        ), sceneMode = 5),
     )
 
     val byId: Map<String, FilterDefinition> = filters.associateBy { it.id }
@@ -227,8 +280,16 @@ object FilterCatalog {
         category: FilterCategory,
         name: String,
         grade: ColorGrade,
-    ) = FilterDefinition(id, category, name, grade.clamp(), usesLut = false)
+    ) = FilterDefinition(id, category, name, grade.clamp(), usesLut = false, sceneMode = 0)
+
+    private fun scene(
+        id: String,
+        category: FilterCategory,
+        name: String,
+        grade: ColorGrade,
+        sceneMode: Int,
+    ) = FilterDefinition(id, category, name, grade.clamp(), usesLut = false, sceneMode = sceneMode)
 
     private fun lut(id: String, name: String, grade: ColorGrade) =
-        FilterDefinition(id, FilterCategory.Lut, name, grade.clamp(), usesLut = true)
+        FilterDefinition(id, FilterCategory.Lut, name, grade.clamp(), usesLut = true, sceneMode = 0)
 }

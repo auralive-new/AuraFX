@@ -248,6 +248,7 @@ class FilterPipelineEffect(
         GLES30.glUniform1f(program.loc("uBloom"), g.bloom)
         GLES30.glUniform1f(program.loc("uSkinProtect"), if (def.skinAware) g.skinProtect else 0f)
         GLES30.glUniform1f(program.loc("uFeatureProtect"), if (def.skinAware) g.featureProtect else 0f)
+        GLES30.glUniform1i(program.loc("uSceneMode"), def.sceneMode)
         GLES30.glBindVertexArray(quadVao)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)

@@ -55,7 +55,7 @@ Photo and video use the **final GPU frame**, not a raw camera dump.
 
 CameraX (single bind) → vision → background → makeup → beauty → hair (color + grooms) → body → lighting → filter → AR → preview / encoder.
 
-Docs: [`docs/STEP_7_FINAL_SDK_QA.md`](docs/STEP_7_FINAL_SDK_QA.md)
+Docs: [`docs/STEP_7_FINAL_SDK_QA.md`](docs/STEP_7_FINAL_SDK_QA.md) · inventory: [`docs/REFERENCE_FEATURE_INVENTORY.md`](docs/REFERENCE_FEATURE_INVENTORY.md)
 
 ## Build
 
@@ -68,7 +68,5 @@ export ANDROID_HOME=/path/to/android-sdk
 
 Install Studio on a **physical** device for visual QA. Unit tests do not prove realism.
 
-REFERENCE SOURCE = NOT AVAILABLE until Tango recordings are in the workspace.
-
-Inventory: [`docs/TANGO_REFERENCE_INVENTORY.md`](docs/TANGO_REFERENCE_INVENTORY.md) — **NEEDS SOURCE MATERIAL**, TANGO COMPLETE = NO.
+Named options from the supplied inventory are implemented in the SDK. See [`docs/REFERENCE_FEATURE_INVENTORY.md`](docs/REFERENCE_FEATURE_INVENTORY.md).
 PHYSICAL DEVICE = PENDING until a phone is connected.

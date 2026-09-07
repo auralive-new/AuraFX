@@ -132,6 +132,7 @@ data class LipstickMakeup(
     var intensity: Float = 0f,
     var opacity: Float = 0.75f,
     var color: MakeupColor = MakeupColor(0.72f, 0.16f, 0.22f),
+    var look: LipLook = LipLook.GlossyPop,
 ) {
     fun clampInPlace() {
         intensity = clamp01(intensity)
@@ -244,6 +245,7 @@ data class MakeupParameters(
                 eyelashes.enabled = true; eyelashes.intensity = 0.4f; eyelashes.style = LashStyle.NaturalCurl
                 lipstick.enabled = true; lipstick.intensity = 0.55f; lipstick.opacity = 0.7f
                 lipstick.color.set(0.70f, 0.18f, 0.24f)
+                lipstick.look = LipLook.GlossyPop
                 lipLiner.enabled = true; lipLiner.intensity = 0.4f
                 lipGloss.enabled = true; lipGloss.intensity = 0.25f
             }
@@ -261,6 +263,7 @@ data class MakeupParameters(
                 eyelashes.enabled = true; eyelashes.intensity = 0.55f; eyelashes.style = LashStyle.Lifted
                 lipstick.enabled = true; lipstick.intensity = 0.62f
                 lipstick.color.set(0.92f, 0.28f, 0.40f)
+                lipstick.look = LipLook.Ombre
                 lipGloss.enabled = true; lipGloss.intensity = 0.55f
                 lens.enabled = true; lens.intensity = 0.25f; lens.style = LensStyle.WarmGlint
             }
@@ -278,6 +281,7 @@ data class MakeupParameters(
                 eyelashes.enabled = true; eyelashes.intensity = 0.85f; eyelashes.style = LashStyle.FullFan
                 lipstick.enabled = true; lipstick.intensity = 0.8f; lipstick.opacity = 0.88f
                 lipstick.color.set(0.45f, 0.04f, 0.10f)
+                lipstick.look = LipLook.Lacquer
                 lipLiner.enabled = true; lipLiner.intensity = 0.7f
                 lipGloss.enabled = true; lipGloss.intensity = 0.7f
                 lens.enabled = true; lens.intensity = 0.45f; lens.style = LensStyle.SapphireInk

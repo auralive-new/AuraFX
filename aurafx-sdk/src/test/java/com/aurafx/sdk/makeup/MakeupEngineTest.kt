@@ -30,6 +30,9 @@ class MakeupParametersTest {
         assertThat(a.lipstick.color.r).isNotEqualTo(c.lipstick.color.r)
         assertThat(b.blush.style).isEqualTo(BlushStyle.BlushBomb)
         assertThat(c.eyeliner.style).isEqualTo(EyelinerStyle.CatEye)
+        assertThat(a.lipstick.look).isEqualTo(com.aurafx.sdk.api.LipLook.GlossyPop)
+        assertThat(b.lipstick.look).isEqualTo(com.aurafx.sdk.api.LipLook.Ombre)
+        assertThat(c.lipstick.look).isEqualTo(com.aurafx.sdk.api.LipLook.Lacquer)
         a.lipstick.intensity = 0.11f
         a.clampInPlace()
         assertThat(a.lipstick.intensity).isWithin(1e-4f).of(0.11f)

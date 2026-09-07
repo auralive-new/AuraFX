@@ -16,7 +16,7 @@ class FilterCatalogTest {
         for (cat in FilterCategory.entries) {
             assertThat(FilterCatalog.inCategory(cat)).isNotEmpty()
         }
-        assertThat(FilterCatalog.filters).hasSize(39)
+        assertThat(FilterCatalog.filters).hasSize(51)
     }
 
     @Test

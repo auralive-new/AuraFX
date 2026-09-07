@@ -20,7 +20,13 @@ import com.aurafx.sdk.AuraFxSession
 import com.aurafx.sdk.api.AuraFxError
 import com.aurafx.sdk.api.AuraFxResult
 import com.aurafx.sdk.api.AuraFxSessionListener
+import com.aurafx.sdk.api.BlushStyle
+import com.aurafx.sdk.api.BrowStyle
+import com.aurafx.sdk.api.EyelinerStyle
 import com.aurafx.sdk.api.HairColorId
+import com.aurafx.sdk.api.LashStyle
+import com.aurafx.sdk.api.LensStyle
+import com.aurafx.sdk.api.LipLook
 import com.aurafx.sdk.api.LensFacing
 import com.aurafx.sdk.api.LightingMode
 import com.aurafx.sdk.api.MakeupPreset
@@ -37,7 +43,7 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private var surfaceHeight = 0
     private var pendingFacing = LensFacing.FRONT
     private var userWantsCamera = false
-    private var category = Category.Beauty
+    private var beautyAdvanced = false
 
     private enum class Category { Beauty, FaceShape, Makeup, Filters, Background, Hair, Body, Lighting, AR }
 
@@ -233,14 +239,15 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
             t.text = text
             host.addView(t)
         }
-        fun slider(name: String, read: () -> Float, write: (Float) -> Unit) {
+        fun slider(name: String, read: () -> Float, signed: Boolean = false, write: (Float) -> Unit) {
             label(name)
             val bar = SeekBar(this)
             bar.max = 200
-            bar.progress = (read() * 200f).toInt().coerceIn(0, 200)
+            val initial = read()
+            bar.progress = if (signed) ((initial + 1f) * 100f).toInt().coerceIn(0, 200) else (initial * 200f).toInt().coerceIn(0, 200)
             bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    if (fromUser) write(progress / 200f)
+                    if (fromUser) write(if (signed) progress / 100f - 1f else progress / 200f)
                 }
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -255,29 +262,95 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
         }
         when (category) {
             Category.Beauty -> {
-                slider("Fine smooth", { target.beautyParameters().fineSmooth }) { v -> target.beauty { fineSmooth = v } }
-                slider("Smoothness", { target.skinParameters().smoothness }) { v -> target.skin { smoothness = v } }
-                slider("Texture preserve", { target.skinParameters().texturePreserve }) { v -> target.skin { texturePreserve = v } }
-                slider("Whiten", { target.beautyParameters().whiten }) { v -> target.beauty { whiten = v } }
+                action(if (beautyAdvanced) "Show basic" else "Show advanced") {
+                    beautyAdvanced = !beautyAdvanced
+                    bindCategory(target)
+                }
+                if (!beautyAdvanced) {
+                    slider("Fine Smooth", { target.beautyParameters().fineSmooth }) { v -> target.beauty { fineSmooth = v } }
+                    slider("Tooth Whiten", { target.beautyParameters().toothWhiten }) { v -> target.beauty { toothWhiten = v } }
+                    slider("Whiten", { target.beautyParameters().whiten }) { v -> target.beauty { whiten = v } }
+                    slider("Ruddy", { target.beautyParameters().ruddy }) { v -> target.beauty { ruddy = v } }
+                    slider("Circles", { target.beautyParameters().circles }) { v -> target.beauty { circles = v } }
+                } else {
+                    slider("V Face", { target.faceShapeParameters().vFace }) { v -> target.faceShape { vFace = v } }
+                    slider("Cheek Thin", { target.faceShapeParameters().cheekThin }) { v -> target.faceShape { cheekThin = v } }
+                    slider("Cheek Small", { target.faceShapeParameters().cheekSmall }) { v -> target.faceShape { cheekSmall = v } }
+                    slider("Cheek Narrow", { target.faceShapeParameters().cheekNarrow }) { v -> target.faceShape { cheekNarrow = v } }
+                    slider("Nose", { target.faceShapeParameters().nose }) { v -> target.faceShape { nose = v } }
+                    slider("Eye Enlarge", { target.faceShapeParameters().eyeEnlarge }) { v -> target.faceShape { eyeEnlarge = v } }
+                    slider("Eye Distance", { target.faceShapeParameters().eyeDistance }, signed = true) { v -> target.faceShape { eyeDistance = v } }
+                    slider("Mouth", { target.faceShapeParameters().mouth }) { v -> target.faceShape { mouth = v } }
+                }
                 action("Reset beauty") { target.resetBeauty(); bindCategory(target) }
             }
             Category.FaceShape -> {
-                slider("V face", { target.faceShapeParameters().vFace }) { v -> target.faceShape { vFace = v } }
-                slider("Cheek thin", { target.faceShapeParameters().cheekThin }) { v -> target.faceShape { cheekThin = v } }
-                slider("Eye enlarge", { target.faceShapeParameters().eyeEnlarge }) { v -> target.faceShape { eyeEnlarge = v } }
+                slider("V Face", { target.faceShapeParameters().vFace }) { v -> target.faceShape { vFace = v } }
+                slider("Cheek Thin", { target.faceShapeParameters().cheekThin }) { v -> target.faceShape { cheekThin = v } }
+                slider("Cheek Small", { target.faceShapeParameters().cheekSmall }) { v -> target.faceShape { cheekSmall = v } }
+                slider("Cheek Narrow", { target.faceShapeParameters().cheekNarrow }) { v -> target.faceShape { cheekNarrow = v } }
                 slider("Nose", { target.faceShapeParameters().nose }) { v -> target.faceShape { nose = v } }
+                slider("Eye Enlarge", { target.faceShapeParameters().eyeEnlarge }) { v -> target.faceShape { eyeEnlarge = v } }
+                slider("Eye Distance", { target.faceShapeParameters().eyeDistance }, signed = true) { v -> target.faceShape { eyeDistance = v } }
+                slider("Mouth", { target.faceShapeParameters().mouth }) { v -> target.faceShape { mouth = v } }
             }
             Category.Makeup -> {
-                action("Classic") { target.applyMakeupPreset(MakeupPreset.Classic) }
-                action("Bright") { target.applyMakeupPreset(MakeupPreset.Bright) }
-                action("Extravagant") { target.applyMakeupPreset(MakeupPreset.Extravagant) }
+                action("Classic") { target.applyMakeupPreset(MakeupPreset.Classic); bindCategory(target) }
+                action("Bright") { target.applyMakeupPreset(MakeupPreset.Bright); bindCategory(target) }
+                action("Extravagant") { target.applyMakeupPreset(MakeupPreset.Extravagant); bindCategory(target) }
+                action("Next blush") {
+                    val styles = BlushStyle.entries
+                    val cur = target.makeupParameters().blush.style
+                    val next = styles[(styles.indexOf(cur) + 1) % styles.size]
+                    target.makeup { blush.enabled = true; blush.style = next; blush.intensity = blush.intensity.coerceAtLeast(0.35f) }
+                    bindCategory(target)
+                }
+                action("Next lip look") {
+                    val looks = LipLook.entries
+                    val cur = target.makeupParameters().lipstick.look
+                    val next = looks[(looks.indexOf(cur) + 1) % looks.size]
+                    target.makeup { lipstick.enabled = true; lipstick.look = next; lipstick.intensity = lipstick.intensity.coerceAtLeast(0.45f) }
+                    bindCategory(target)
+                }
+                action("Next brow") {
+                    val styles = BrowStyle.entries
+                    val cur = target.makeupParameters().eyebrow.style
+                    val next = styles[(styles.indexOf(cur) + 1) % styles.size]
+                    target.makeup { eyebrow.enabled = true; eyebrow.style = next; eyebrow.intensity = eyebrow.intensity.coerceAtLeast(0.4f) }
+                    bindCategory(target)
+                }
+                action("Next liner") {
+                    val styles = EyelinerStyle.entries
+                    val cur = target.makeupParameters().eyeliner.style
+                    val next = styles[(styles.indexOf(cur) + 1) % styles.size]
+                    target.makeup { eyeliner.enabled = true; eyeliner.style = next; eyeliner.intensity = if (next == EyelinerStyle.None) 0f else eyeliner.intensity.coerceAtLeast(0.45f) }
+                    bindCategory(target)
+                }
+                action("Next lash") {
+                    val styles = LashStyle.entries
+                    val cur = target.makeupParameters().eyelashes.style
+                    val next = styles[(styles.indexOf(cur) + 1) % styles.size]
+                    target.makeup { eyelashes.enabled = true; eyelashes.style = next; eyelashes.intensity = eyelashes.intensity.coerceAtLeast(0.4f) }
+                    bindCategory(target)
+                }
+                action("Next lens") {
+                    val styles = LensStyle.entries
+                    val cur = target.makeupParameters().lens.style
+                    val next = styles[(styles.indexOf(cur) + 1) % styles.size]
+                    target.makeup { lens.enabled = true; lens.style = next; lens.intensity = lens.intensity.coerceAtLeast(0.35f) }
+                    bindCategory(target)
+                }
+                val m = target.makeupParameters()
+                label("Blush ${m.blush.style}  Lip ${m.lipstick.look}")
+                label("Brow ${m.eyebrow.style}  Liner ${m.eyeliner.style}")
+                label("Lash ${m.eyelashes.style}  Lens ${m.lens.style}")
                 slider("Lipstick", { target.makeupParameters().lipstick.intensity }) { v ->
                     target.makeup { lipstick.enabled = v > 0f; lipstick.intensity = v }
                 }
                 slider("Blush", { target.makeupParameters().blush.intensity }) { v ->
                     target.makeup { blush.enabled = v > 0f; blush.intensity = v }
                 }
-                action("Reset makeup") { target.resetMakeup() }
+                action("Reset makeup") { target.resetMakeup(); bindCategory(target) }
             }
             Category.Filters -> {
                 action("Next filter") {
@@ -286,7 +359,7 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
                     target.setFilter(ids[(idx + 1 + ids.size) % ids.size], 0.7f)
                     bindCategory(target)
                 }
-                label("Current ${target.filterParameters().id ?: "none"}")
+                label("Current ${target.filterParameters().id ?: "none"}  ${target.filterCatalog().firstOrNull { it.id == target.filterParameters().id }?.displayName ?: ""}")
                 slider("Intensity", { target.filterParameters().intensity }) { v ->
                     val id = target.filterParameters().id ?: target.filterCatalog().first().id
                     target.setFilter(id, v)

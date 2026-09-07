@@ -78,6 +78,7 @@ uniform float uGrain;
 uniform float uBloom;
 uniform float uSkinProtect;
 uniform float uFeatureProtect;
+uniform int uSceneMode;
 in vec2 vUv;
 out vec4 fragColor;
 
@@ -171,6 +172,39 @@ void main() {
     float n = hash21(vUv * vec2(1920.0, 1080.0));
     mapped += (n - 0.5) * uGrain * 0.07 * (1.0 - skin * 0.55);
   }
+  if (uSceneMode == 1) {
+    float y = fract(vUv.y * 22.0 + vUv.x * 3.2);
+    float streak = smoothstep(0.82, 0.98, hash21(vec2(floor(vUv.x * 48.0), y)));
+    mapped = mix(mapped, mapped + vec3(0.10, 0.12, 0.14), streak * (1.0 - skin * 0.7));
+    mapped *= vec3(0.93, 0.95, 1.03);
+  } else if (uSceneMode == 2) {
+    float cloud = smoothstep(0.55, 0.95, hash21(floor(vUv * vec2(9.0, 6.0))));
+    vec3 neon = vec3(0.35, 0.55, 1.0) * cloud + vec3(0.85, 0.25, 0.65) * (1.0 - cloud);
+    mapped = mix(mapped, mapped * 0.75 + neon * 0.35, 0.45 * (1.0 - skin * 0.55));
+  } else if (uSceneMode == 3) {
+    vec2 g = abs(fract(vUv * 14.0) - 0.5);
+    float grid = 1.0 - smoothstep(0.02, 0.08, min(g.x, g.y));
+    mapped = mix(mapped, mapped + vec3(0.15, 0.55, 0.95) * grid, 0.35 * (1.0 - skin * 0.6));
+  } else if (uSceneMode == 4) {
+    float haze = smoother(vUv.y, 0.15, 0.85);
+    mapped = mix(mapped, mapped * vec3(1.12, 0.92, 0.62) + vec3(0.08, 0.04, 0.0), haze * 0.28 * (1.0 - skin * 0.4));
+  } else if (uSceneMode == 5) {
+    float window = smoother(1.0 - vUv.y, 0.55, 0.95) * smoother(abs(vUv.x - 0.5), 0.0, 0.42);
+    mapped *= mix(0.72, 1.08, window);
+    mapped = mix(mapped, mapped * vec3(1.08, 0.95, 0.78), 0.22);
+  } else if (uSceneMode == 6) {
+    float r = distance(vUv, vec2(0.5));
+    mapped *= 1.0 - smoother(r, 0.22, 0.72) * 0.45;
+    mapped.r += 0.04 * smoother(r, 0.35, 0.8);
+    mapped.b += 0.03 * (1.0 - smoother(r, 0.1, 0.5));
+  } else if (uSceneMode == 7) {
+    mapped = floor(mapped * 5.0 + 0.5) / 5.0;
+    mapped = sat(mapped, 1.15);
+  } else if (uSceneMode == 8) {
+    vec2 p = vUv * vec2(12.0, 9.0);
+    float spots = smoothstep(0.35, 0.15, length(fract(p) - 0.5) + 0.15 * hash21(floor(p)));
+    mapped = mix(mapped, mapped * vec3(0.55, 0.38, 0.18), spots * 0.55 * (1.0 - skin * 0.75));
+  }
   vec3 outc = mix(src, mapped, clamp(uIntensity, 0.0, 1.0));
   fragColor = vec4(clamp(outc, 0.0, 1.0), src4.a);
 }
@@ -181,5 +215,6 @@ void main() {
             FRAG_GRADE.contains("uIntensity") &&
             FRAG_GRADE.contains("uLut") &&
             FRAG_GRADE.contains("uSkinProtect") &&
+            FRAG_GRADE.contains("uSceneMode") &&
             FRAG_RESOLVE_OES.contains("samplerExternalOES")
 }

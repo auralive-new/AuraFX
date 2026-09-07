@@ -44,9 +44,7 @@ Sprite fragment samples the packed scene mask (G = hair). `hairOcclude` on each 
 
 ## Catalog (10 original AuraFX looks)
 
-Reference Tango recordings are **not** in this workspace. Extra icon names were **not invented**.
-
-**REFERENCE INVENTORY = NEEDS SOURCE MATERIAL**
+Extra third-party icon names were **not invented**. The original ten AuraFX looks remain. See [`REFERENCE_FEATURE_INVENTORY.md`](REFERENCE_FEATURE_INVENTORY.md).
 
 Implemented and **GPU-rendered** (procedural, original art):
 
@@ -89,7 +87,7 @@ Unknown ids → `AuraFxError.UnknownEffect`. Intensity 0 skips the GPU pass.
 
 - One primary face; semantic (not instance) hair/person mattes
 - No blendshape stream (expression is landmark geometry)
-- No Tango-complete icon inventory until recordings are in the repo
+- Additional third-party AR titles were not supplied in the named inventory
 - Physical device PENDING
 
 ## Physical-device QA

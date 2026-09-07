@@ -11,6 +11,31 @@ enum class FilterCategory {
     Mood,
     Classic,
     Lut,
+    Orbit360,
+    Live,
+    Patterns,
+    Blur,
+    Signature,
+    Anime,
+    AnimalPrint,
+    Nature,
+    Scenery,
+    Rooms,
+}
+
+fun FilterCategory.trayLabel(): String = when (this) {
+    FilterCategory.Orbit360 -> "360°"
+    FilterCategory.Live -> "LIVE"
+    FilterCategory.Glow -> "GLOW"
+    FilterCategory.Patterns -> "PATTERNS"
+    FilterCategory.Blur -> "BLUR"
+    FilterCategory.Signature -> "SIGNATURE"
+    FilterCategory.Anime -> "ANIME"
+    FilterCategory.AnimalPrint -> "ANIMAL PRINT"
+    FilterCategory.Nature -> "NATURE"
+    FilterCategory.Scenery -> "SCENERY"
+    FilterCategory.Rooms -> "ROOMS"
+    else -> name.uppercase()
 }
 
 enum class FilterFinish {

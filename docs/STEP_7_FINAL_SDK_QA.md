@@ -4,7 +4,7 @@ Standalone SDK. **No AuraLive. Do not start Step 8.**
 
 Physical-device visual QA is **PENDING**. Automated tests are not visual realism proof.
 
-REFERENCE SOURCE = **NOT AVAILABLE** (no Tango recordings in this workspace). Completeness audit vs Tango remains pending. See [`TANGO_REFERENCE_INVENTORY.md`](TANGO_REFERENCE_INVENTORY.md).
+Named options from the supplied inventory are listed in [`REFERENCE_FEATURE_INVENTORY.md`](REFERENCE_FEATURE_INVENTORY.md). Physical-device visual QA remains pending.
 
 ## Final architecture
 
@@ -42,7 +42,7 @@ Camera switch **while recording** is **refused** (`CapturePolicy.Refuse`). Stop 
 
 - **Skin / beauty / face shape** — GPU skin-aware blur + localized warp (Step 2).
 - **Makeup** — 13 landmark GPU modules, 3 presets (Step 3).
-- **Filters** — 10 categories, 39 grades + 32³ LUT (Step 4).
+- **Filters** — 51 GPU grades (original 39 plus required trays/names; 32³ LUT where flagged). See [`REFERENCE_FEATURE_INVENTORY.md`](REFERENCE_FEATURE_INVENTORY.md).
 - **Background** — 20 procedural/blur entries; no image PNG catalog.
 - **Hair colors** — 12 dye colors on hair-class matte.
 - **Hair styles** — 13 rendered (see table).
@@ -131,7 +131,7 @@ Leak magnitudes on a phone: **PENDING**.
 
 ## Known limitations
 
-- No Tango reference inventory (source missing).
+- Physical-device visual QA is still pending.
 - Groom assets are procedural meshes, not scanned hair grooms.
 - Semantic (not instance) segmentation; one primary pose.
 - Video crop and live effect reprocess of imported video are unavailable.
@@ -142,7 +142,7 @@ Leak magnitudes on a phone: **PENDING**.
 
 ## Reference inventory status
 
-**NEEDS SOURCE MATERIAL**
+See [`REFERENCE_FEATURE_INVENTORY.md`](REFERENCE_FEATURE_INVENTORY.md). Named spec options are registered in the SDK. On-device realism is **PENDING**.
 
 ## Physical-device QA status
 

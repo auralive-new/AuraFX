@@ -8,6 +8,7 @@ data class FilterDefinition(
     val displayName: String,
     val grade: ColorGrade,
     val usesLut: Boolean,
+    val sceneMode: Int = 0,
     val intensityMin: Float = 0f,
     val intensityMax: Float = 1f,
     val defaultIntensity: Float = 0.65f,
@@ -21,6 +22,7 @@ data class FilterDefinition(
         if (grade.bloom > 0f) add("bloom")
         if (grade.grain > 0f) add("grain")
         if (grade.vignette > 0f) add("vignette")
+        if (sceneMode != 0) add("scene-gpu")
         add("intensity")
     }
 

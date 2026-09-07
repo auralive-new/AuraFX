@@ -4,6 +4,7 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES30
 import com.aurafx.sdk.api.LensFacing
 import com.aurafx.sdk.api.LensStyle
+import com.aurafx.sdk.api.LipLook
 import com.aurafx.sdk.api.MakeupColor
 import com.aurafx.sdk.effect.Effect
 import com.aurafx.sdk.effect.EffectContext
@@ -224,6 +225,14 @@ class MakeupPipelineEffect(
         GLES30.glUniform1f(program.loc("uLip"), snap.lipstick.intensity)
         GLES30.glUniform1f(program.loc("uLipOpacity"), snap.lipstick.opacity)
         GLES30.glUniform3fv(program.loc("uLipCol"), 1, col(snap.lipstick.color), 0)
+        GLES30.glUniform1i(
+            program.loc("uLipLook"),
+            when (snap.lipstick.look) {
+                LipLook.GlossyPop -> 0
+                LipLook.Lacquer -> 1
+                LipLook.Ombre -> 2
+            },
+        )
         GLES30.glUniform1f(program.loc("uLipLiner"), snap.lipLiner.intensity)
         GLES30.glUniform3fv(program.loc("uLipLinerCol"), 1, col(snap.lipLiner.color), 0)
         GLES30.glUniform1f(program.loc("uGloss"), snap.lipGloss.intensity)

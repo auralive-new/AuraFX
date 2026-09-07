@@ -85,17 +85,9 @@ Unknown ids return `AuraFxError.UnknownFilter` from `setFilter` and leave state 
 
 ## Reference inventory
 
-Inspected this repository and prior step context for Tango recordings, filter icon sheets, and LUT packs.
+Filter names beyond the supplied inventory were **not invented** as third-party titles. AuraLive remains locked until Step 8.
 
-| Source | Result |
-|---|---|
-| Repo images/video/LUT files | **none** |
-| AuraLive / Tango preview | **not in this project** (locked until Step 8) |
-| User-named categories in the Step 4 brief | **used** |
-
-Items that cannot be identified from available material are **not invented**.
-
-**UNREADABLE — NEEDS FRAME REVIEW:** every additional Tango-only category name, tray icon, and per-filter title that would only be visible in the supplied reference recordings/screenshots. Those assets were not present in the workspace.
+See [`REFERENCE_FEATURE_INVENTORY.md`](REFERENCE_FEATURE_INVENTORY.md) for the current catalog (51 GPU filters).
 
 ## Implemented category inventory
 
@@ -111,20 +103,27 @@ Items that cannot be identified from available material are **not invented**.
 | Mood | `mood.noir`, `mood.dusk`, `mood.fog`, `mood.ember` |
 | Classic | `classic.print`, `classic.chrome`, `classic.fade`, `classic.silver` |
 | LUT | `lut.film_warm`, `lut.film_cool`, `lut.cross_process`, `lut.contrast_s`, `lut.split_tone` |
+| Orbit360 | `orbit.wrap` |
+| Live | `live.day_light`, `live.neon_clouds` |
+| Patterns | `patterns.neon_pattern` |
+| Blur | `blur.dream` |
+| Signature | `signature.prime` |
+| Anime | `anime.cel` |
+| AnimalPrint | `animal.leopard` |
+| Nature | `nature.desert` |
+| Scenery | `scenery.rainy_street`, `scenery.city_sunset` |
+| Rooms | `rooms.canopy_bed` |
 
-Names describe the grade. They are **not** claimed Tango product names.
+Names describe AuraFX grades. Full tables: [`REFERENCE_FEATURE_INVENTORY.md`](REFERENCE_FEATURE_INVENTORY.md).
 
-## Completeness vs reference
+## Completeness vs supplied inventory
 
 | Metric | Count |
 |---|---|
-| Reference categories (brief) | 10 |
-| Reference individual Tango icons/titles | **UNREADABLE — NEEDS FRAME REVIEW** (assets missing) |
-| Implemented categories | 10 |
-| Implemented individual filters | 39 |
-| Missing specified categories | 0 |
-| Placeholders (identity grades / fake thumbs / color overlays) | 0 |
-| Functional (GPU grade or real LUT + intensity mix) | 39 |
+| Required named filters from spec | 7 (all present) |
+| Required trays from spec | 11 (all present) |
+| Implemented individual filters | 51 |
+| Placeholders (identity grades) | 0 |
 
 ## Skin-aware filtering
 
@@ -148,7 +147,7 @@ JVM tests cover catalog validity, unique ids, category membership, ranges, inten
 
 - No physical camera QA in this environment (`adb` empty).
 - Hair/body/background mattes are out of scope (Step 5).
-- Tango icon-accurate names cannot be filled without the recordings.
+- Scene modes are same-pass GPU treatments, not photographed plates.
 - Bloom is a same-pass neighborhood highlight, not a multi-resolution glare model.
 - Grain is hash noise, not scanned film stock.
 
