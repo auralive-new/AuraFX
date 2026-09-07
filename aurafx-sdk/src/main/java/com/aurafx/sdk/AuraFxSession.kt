@@ -1,0 +1,239 @@
+package com.aurafx.sdk
+
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.view.Surface
+import android.view.WindowManager
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import com.aurafx.sdk.api.AuraFxError
+import com.aurafx.sdk.api.AuraFxInputFrame
+import com.aurafx.sdk.api.AuraFxResult
+import com.aurafx.sdk.api.AuraFxSessionListener
+import com.aurafx.sdk.api.LensFacing
+import com.aurafx.sdk.api.PerformanceSnapshot
+import com.aurafx.sdk.api.SessionConfig
+import com.aurafx.sdk.effect.Effect
+import com.aurafx.sdk.effect.EffectManager
+import com.aurafx.sdk.internal.camera.AuraFxCameraController
+import com.aurafx.sdk.internal.camera.CameraPermission
+import com.aurafx.sdk.internal.device.DeviceCapabilities
+import com.aurafx.sdk.internal.render.AuraFxRenderThread
+import com.aurafx.sdk.performance.PerformanceManager
+import com.aurafx.sdk.pipeline.FramePipeline
+import com.aurafx.sdk.vision.VisionProcessor
+import java.util.concurrent.atomic.AtomicBoolean
+
+/**
+ * One camera + GPU pipeline. Create via [AuraFx.createSession].
+ */
+class AuraFxSession internal constructor(
+    context: Context,
+    private val config: SessionConfig,
+    instrumentationEnabled: Boolean,
+) {
+    private val appContext = context.applicationContext
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val listener: AuraFxSessionListener? = config.listener
+    private val released = AtomicBoolean(false)
+    private val wantRunning = AtomicBoolean(false)
+    private val pausedByLifecycle = AtomicBoolean(false)
+
+    val pipeline = FramePipeline()
+    val vision = VisionProcessor()
+    val performance = PerformanceManager(
+        enabled = instrumentationEnabled,
+        nativeHeapProbe = { DeviceCapabilities.nativeHeapAllocatedBytes() },
+    )
+    val effects = EffectManager(performance)
+
+    private val renderer = AuraFxRenderThread(
+        performance = performance,
+        pipeline = pipeline,
+        effects = effects,
+        vision = vision,
+        mirrorFrontCamera = config.mirrorFrontCamera,
+        listener = listener,
+        mainPoster = { mainHandler.post(it) },
+    )
+    private val camera = AuraFxCameraController(appContext, config)
+
+    @Volatile private var lifecycleOwner: LifecycleOwner? = null
+    @Volatile private var previewReady = false
+    @Volatile private var lastFacing: LensFacing = LensFacing.FRONT
+
+    private val lifecycleObserver = object : DefaultLifecycleObserver {
+        override fun onPause(owner: LifecycleOwner) {
+            if (wantRunning.get() && camera.isBound()) {
+                pausedByLifecycle.set(true)
+                camera.stop()
+            }
+        }
+
+        override fun onResume(owner: LifecycleOwner) {
+            if (wantRunning.get() && pausedByLifecycle.get()) {
+                pausedByLifecycle.set(false)
+                startCameraInternal(owner, lastFacing)
+            }
+        }
+
+        override fun onDestroy(owner: LifecycleOwner) {
+            stopCamera()
+            owner.lifecycle.removeObserver(this)
+        }
+    }
+
+    init {
+        renderer.start()
+    }
+
+    fun attachPreview(surface: Surface, width: Int, height: Int): AuraFxResult<Unit> {
+        if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        if (!surface.isValid) {
+            return AuraFxResult.Err(AuraFxError.GpuFailure("Preview surface is not valid"))
+        }
+        val glError = renderer.awaitReady()
+        if (glError != null) return AuraFxResult.Err(glError)
+        renderer.attachOutput(surface, width, height)
+        previewReady = true
+        return AuraFxResult.Ok(Unit)
+    }
+
+    fun detachPreview() {
+        previewReady = false
+        if (!released.get()) renderer.detachOutput()
+    }
+
+    fun resizePreview(width: Int, height: Int) {
+        if (!released.get()) renderer.resize(width, height)
+    }
+
+    fun startCamera(lifecycleOwner: LifecycleOwner, lensFacing: LensFacing): AuraFxResult<Unit> {
+        if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        CameraPermission.denied(appContext)?.let { return AuraFxResult.Err(it) }
+        DeviceCapabilities.requireSupported(appContext, requireGles3 = true).errorOrNull()?.let {
+            return AuraFxResult.Err(it)
+        }
+        if (!DeviceCapabilities.hasLens(appContext, lensFacing)) {
+            return AuraFxResult.Err(
+                AuraFxError.CameraUnavailable("No ${lensFacing.name.lowercase()} camera on this device"),
+            )
+        }
+        val glError = renderer.awaitReady()
+        if (glError != null) return AuraFxResult.Err(glError)
+        if (!previewReady) {
+            return AuraFxResult.Err(AuraFxError.InvalidState("attachPreview() must be called before startCamera()"))
+        }
+        this.lifecycleOwner?.lifecycle?.removeObserver(lifecycleObserver)
+        this.lifecycleOwner = lifecycleOwner
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+        wantRunning.set(true)
+        lastFacing = lensFacing
+        performance.markCameraStart()
+        startCameraInternal(lifecycleOwner, lensFacing)
+        return AuraFxResult.Ok(Unit)
+    }
+
+    fun switchCamera(): AuraFxResult<Unit> {
+        if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        val owner = lifecycleOwner
+            ?: return AuraFxResult.Err(AuraFxError.InvalidState("Camera is not started"))
+        val next = if (lastFacing == LensFacing.FRONT) LensFacing.BACK else LensFacing.FRONT
+        if (!DeviceCapabilities.hasLens(appContext, next)) {
+            return AuraFxResult.Err(AuraFxError.CameraUnavailable("Requested camera is not available"))
+        }
+        performance.markCameraStart()
+        try {
+            renderer.setFacing(next)
+            camera.switchCamera(
+                lifecycleOwner = owner,
+                previewSurface = renderer.cameraPreviewSurface(),
+                rotation = currentDisplayRotation(),
+                onBound = { facing ->
+                    lastFacing = facing
+                    renderer.setFacing(facing)
+                    mainHandler.post { listener?.onCameraStarted(facing) }
+                },
+                onError = { error -> mainHandler.post { listener?.onError(error) } },
+            )
+            return AuraFxResult.Ok(Unit)
+        } catch (t: Throwable) {
+            return AuraFxResult.Err(AuraFxError.CameraUnavailable("switchCamera failed", t))
+        }
+    }
+
+    fun stopCamera(): AuraFxResult<Unit> {
+        wantRunning.set(false)
+        pausedByLifecycle.set(false)
+        val result = camera.stop()
+        mainHandler.post { listener?.onCameraStopped() }
+        return result
+    }
+
+    /**
+     * External CPU frame ingress. Does not open a second camera.
+     */
+    fun processFrame(input: AuraFxInputFrame): AuraFxResult<Unit> {
+        if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        if (input.width <= 0 || input.height <= 0) {
+            return AuraFxResult.Err(AuraFxError.InvalidState("Invalid frame size"))
+        }
+        val expected = input.width * input.height * 4
+        if (input.rgba8888.remaining() < expected) {
+            return AuraFxResult.Err(AuraFxError.InvalidState("RGBA buffer smaller than width*height*4"))
+        }
+        renderer.submitExternalFrame(input)
+        return AuraFxResult.Ok(Unit)
+    }
+
+    fun registerEffect(effect: Effect) = effects.register(effect)
+
+    fun unregisterEffect(id: String) = effects.unregister(id)
+
+    fun performanceSnapshot(): PerformanceSnapshot = performance.snapshot()
+
+    fun isCameraBound(): Boolean = camera.isBound()
+
+    fun currentLensFacing(): LensFacing = lastFacing
+
+    fun release() {
+        if (!released.compareAndSet(false, true)) return
+        wantRunning.set(false)
+        lifecycleOwner?.lifecycle?.removeObserver(lifecycleObserver)
+        lifecycleOwner = null
+        try {
+            camera.release()
+        } catch (t: Throwable) {
+            listener?.onError(AuraFxError.ResourceCleanup("Camera release failed", t))
+        }
+        try {
+            renderer.release()
+        } catch (t: Throwable) {
+            listener?.onError(AuraFxError.ResourceCleanup("Renderer release failed", t))
+        }
+        AuraFx.dropSession(this)
+    }
+
+    private fun startCameraInternal(owner: LifecycleOwner, facing: LensFacing) {
+        renderer.setFacing(facing)
+        camera.start(
+            lifecycleOwner = owner,
+            facing = facing,
+            previewSurface = renderer.cameraPreviewSurface(),
+            rotation = currentDisplayRotation(),
+            onBound = { boundFacing ->
+                lastFacing = boundFacing
+                renderer.setFacing(boundFacing)
+                mainHandler.post { listener?.onCameraStarted(boundFacing) }
+            },
+            onError = { error -> mainHandler.post { listener?.onError(error) } },
+        )
+    }
+
+    private fun currentDisplayRotation(): Int {
+        val wm = appContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        @Suppress("DEPRECATION")
+        return wm.defaultDisplay.rotation
+    }
+}

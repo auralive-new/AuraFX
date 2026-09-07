@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AuraFX Sample</string>
+    <string name="permission_rationale">AuraFX Sample needs the camera to verify the SDK preview pipeline. This is not AuraLive.</string>
+    <string name="status_idle">Idle — grant camera permission, then Start.</string>
+</resources>
