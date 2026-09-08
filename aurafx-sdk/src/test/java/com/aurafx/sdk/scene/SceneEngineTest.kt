@@ -38,6 +38,7 @@ class SceneCatalogTest {
             AuraFxEffectOrder.LIGHTING,
             AuraFxEffectOrder.FILTER,
             AuraFxEffectOrder.AR,
+            AuraFxEffectOrder.GIFT,
         ).inOrder()
     }
 }

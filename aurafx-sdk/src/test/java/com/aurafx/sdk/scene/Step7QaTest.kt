@@ -125,6 +125,7 @@ class PipelineOrderTest {
             AuraFxEffectOrder.LIGHTING,
             AuraFxEffectOrder.FILTER,
             AuraFxEffectOrder.AR,
+            AuraFxEffectOrder.GIFT,
         ).inOrder()
     }
 }

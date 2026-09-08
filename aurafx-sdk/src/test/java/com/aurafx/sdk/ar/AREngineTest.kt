@@ -30,7 +30,8 @@ class ARCatalogTest {
         val b = ARThumbnail.argb(AREffectCatalog.require("ar.moonlit_glow")!!, 8, 8)
         assertThat(a.contentEquals(b)).isFalse()
         assertThat(ARShaders.sourcesOk()).isTrue()
-        assertThat(AuraFxEffectOrder.gpuIds.last()).isEqualTo(AuraFxEffectOrder.AR)
+        assertThat(AuraFxEffectOrder.gpuIds.last()).isEqualTo(AuraFxEffectOrder.GIFT)
+        assertThat(AuraFxEffectOrder.gpuIds).contains(AuraFxEffectOrder.AR)
         assertThat(Step5Outstanding.REPLACEMENT_HAIRSTYLES_REQUIRING_GROOM).isEqualTo(0)
     }
 

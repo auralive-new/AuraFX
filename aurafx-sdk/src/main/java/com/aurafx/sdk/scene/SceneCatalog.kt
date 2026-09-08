@@ -234,8 +234,9 @@ object AuraFxEffectOrder {
     const val LIGHTING = "aurafx.lighting"
     const val FILTER = "aurafx.filter.engine"
     const val AR = "aurafx.ar.effects"
+    const val GIFT = "aurafx.gift.engine"
 
     val gpuIds: List<String> = listOf(
-        SEGMENTATION, BACKGROUND, MAKEUP, BEAUTY, HAIR, BODY, LIGHTING, FILTER, AR,
+        SEGMENTATION, BACKGROUND, MAKEUP, BEAUTY, HAIR, BODY, LIGHTING, FILTER, AR, GIFT,
     )
 }

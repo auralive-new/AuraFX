@@ -41,6 +41,9 @@ session.hair { enabled = true; color = HairColorId.Auburn; intensity = 0.55f }
 session.body { enabled = true; slim = 0.2f }
 session.lighting { enabled = true; mode = LightingMode.Soft; intensity = 0.45f }
 session.setAREffect("ar.cupid", 0.75f)
+session.playGift("gift.time_freeze")
+session.replayGift()
+session.stopAllGifts()
 session.capturePhoto(file) { /* processed JPEG */ }
 session.startRecording(file, recordAudio = true)
 session.stopRecording { /* processed MP4 */ }
@@ -53,7 +56,9 @@ Photo and video use the **final GPU frame**, not a raw camera dump.
 
 ## Pipeline
 
-CameraX (single bind) → vision → background → makeup → beauty → hair (color + grooms) → body → lighting → filter → AR → preview / encoder.
+CameraX (single bind) → vision → background → makeup → beauty → hair (color + grooms) → body → lighting → filter → AR → GiftFX → preview / encoder.
+
+GiftFX is a real-time GPU overlay engine (no sticker PNGs, no prerecorded gift videos). Studio’s **Gifts** category plays the first 10 experimental gifts on the live camera preview. Play/stop does **not** rebind the camera. AuraLive / Step 8 is not started.
 
 Docs: [`docs/STEP_7_FINAL_SDK_QA.md`](docs/STEP_7_FINAL_SDK_QA.md) · inventory: [`docs/REFERENCE_FEATURE_INVENTORY.md`](docs/REFERENCE_FEATURE_INVENTORY.md)
 

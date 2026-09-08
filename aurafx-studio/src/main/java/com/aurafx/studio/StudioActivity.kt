@@ -50,11 +50,12 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private var userWantsCamera = false
     private var beautyAdvanced = false
 
-    private enum class Category { Beauty, FaceShape, Makeup, Filters, Background, Hair, Body, Lighting, Masks }
+    private enum class Category { Beauty, FaceShape, Makeup, Filters, Background, Hair, Body, Lighting, Masks, Gifts }
 
     private var category = Category.Beauty
     private var maskTray = com.aurafx.sdk.api.MaskTray.New
     private var bgTray = com.aurafx.sdk.api.BackgroundTray.Orbit360
+    private var selectedGiftId: String? = null
 
     private val metricsTicker = object : Runnable {
         override fun run() {
@@ -461,6 +462,54 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
                     target.setAREffect(id, v)
                 }
                 action("Clear mask") { target.clearAREffect(); bindCategory(target) }
+            }
+            Category.Gifts -> {
+                val gifts = target.giftCatalog()
+                if (selectedGiftId == null) selectedGiftId = gifts.firstOrNull()?.giftId
+                action("Next gift") {
+                    val ids = gifts.map { it.giftId }
+                    val idx = ids.indexOf(selectedGiftId)
+                    selectedGiftId = ids[(idx + 1 + ids.size) % ids.size]
+                    bindCategory(target)
+                }
+                val current = gifts.firstOrNull { it.giftId == selectedGiftId }
+                label("${current?.displayName ?: "none"}  ${current?.durationMs ?: 0}ms")
+                label("Active ${target.activeGifts().joinToString().ifBlank { "none" }}")
+                action("Play") {
+                    val id = selectedGiftId ?: return@action
+                    when (val r = target.playGift(id)) {
+                        is AuraFxResult.Ok -> setStatus("Gift playing ${current?.displayName} #${r.value}")
+                        is AuraFxResult.Err -> setStatus(r.error.message, error = true)
+                    }
+                    bindCategory(target)
+                }
+                action("Replay") {
+                    when (val r = target.replayGift()) {
+                        is AuraFxResult.Ok -> setStatus("Gift replay #${r.value}")
+                        is AuraFxResult.Err -> setStatus(r.error.message, error = true)
+                    }
+                    bindCategory(target)
+                }
+                action("Stop") {
+                    target.stopAllGifts()
+                    setStatus("Gifts stopped")
+                    bindCategory(target)
+                }
+                action("Reset") {
+                    target.resetGifts()
+                    setStatus("Gifts reset")
+                    bindCategory(target)
+                }
+                gifts.forEach { g ->
+                    action(g.displayName) {
+                        selectedGiftId = g.giftId
+                        when (val r = target.playGift(g.giftId)) {
+                            is AuraFxResult.Ok -> setStatus("Gift ${g.displayName}")
+                            is AuraFxResult.Err -> setStatus(r.error.message, error = true)
+                        }
+                        bindCategory(target)
+                    }
+                }
             }
         }
     }

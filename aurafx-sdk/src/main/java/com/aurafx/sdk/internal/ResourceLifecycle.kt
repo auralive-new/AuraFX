@@ -17,5 +17,6 @@ object ResourceLifecycle {
         "AudioRecord + AAC encoder + audio thread joined on recorder stop",
         "Photo JPEG writer uses a daemon executor; shutdown on GL teardown",
         "No second CameraX bind; effect switching only mutates rigs",
+        "GiftFX FBO/shaders released on GiftPipelineEffect.detach; play/stop does not rebind camera",
     )
 }

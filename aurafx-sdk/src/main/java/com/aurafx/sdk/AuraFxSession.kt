@@ -35,6 +35,10 @@ import com.aurafx.sdk.filter.FilterDefinition
 import com.aurafx.sdk.filter.FilterEngine
 import com.aurafx.sdk.filter.FilterPipelineEffect
 import com.aurafx.sdk.filter.FilterRig
+import com.aurafx.sdk.gift.GiftFxCatalog
+import com.aurafx.sdk.gift.GiftFxDefinition
+import com.aurafx.sdk.gift.GiftFxEngine
+import com.aurafx.sdk.gift.GiftPipelineEffect
 import com.aurafx.sdk.beauty.BeautyEngine
 import com.aurafx.sdk.beauty.BeautyPipelineEffect
 import com.aurafx.sdk.beauty.BeautyRig
@@ -109,6 +113,7 @@ class AuraFxSession internal constructor(
     val lightingEngine = LightingEngine(lightingRig)
     val arRig = ARRig()
     val arEngine = AREngine(arRig)
+    val giftEngine = GiftFxEngine()
     val performance = PerformanceManager(
         enabled = instrumentationEnabled,
         nativeHeapProbe = { DeviceCapabilities.nativeHeapAllocatedBytes() },
@@ -174,6 +179,7 @@ class AuraFxSession internal constructor(
         effects.register(LightingPipelineEffect(lightingRig))
         effects.register(FilterPipelineEffect(filterRig))
         effects.register(ARPipelineEffect(arRig))
+        effects.register(GiftPipelineEffect(giftEngine))
         if (config.enableFaceLandmarks) {
             val analyzer = MediaPipeSceneAnalyzer(
                 context = appContext,
@@ -462,6 +468,43 @@ class AuraFxSession internal constructor(
 
     fun arCatalog() = arEngine.catalog()
 
+    fun giftCatalog(): List<GiftFxDefinition> = GiftFxCatalog.samples
+
+    /**
+     * Starts a GPU gift on the existing camera graph. Does not rebind CameraX.
+     */
+    fun playGift(giftId: String): AuraFxResult<Long> {
+        if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        val id = giftEngine.play(giftId) ?: return AuraFxResult.Err(AuraFxError.UnknownEffect("Unknown gift id: $giftId"))
+        return AuraFxResult.Ok(id)
+    }
+
+    fun replayGift(): AuraFxResult<Long> {
+        if (released.get()) return AuraFxResult.Err(AuraFxError.InvalidState("Session released"))
+        val id = giftEngine.replay()
+            ?: return AuraFxResult.Err(AuraFxError.InvalidState("No gift has been played yet"))
+        return AuraFxResult.Ok(id)
+    }
+
+    fun stopGift(instanceId: Long): AuraFxSession {
+        giftEngine.stop(instanceId)
+        return this
+    }
+
+    fun stopAllGifts(): AuraFxSession {
+        giftEngine.stopAll()
+        return this
+    }
+
+    fun resetGifts(): AuraFxSession {
+        giftEngine.reset()
+        return this
+    }
+
+    fun activeGifts(): List<String> = giftEngine.manager.activeGiftIds()
+
+    fun lastGiftId(): String? = giftEngine.manager.lastGiftId
+
     fun hairCatalog() = HairCatalog.styles
     fun backgroundCatalog() = BackgroundCatalog.items
     fun lightingCatalog() = LightingCatalog.modes
@@ -502,6 +545,7 @@ class AuraFxSession internal constructor(
         resetBody()
         resetLighting()
         resetAREffects()
+        resetGifts()
         return this
     }
 
