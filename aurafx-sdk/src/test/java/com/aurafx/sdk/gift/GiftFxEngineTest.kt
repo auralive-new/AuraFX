@@ -1,5 +1,6 @@
 package com.aurafx.sdk.gift
 
+import com.aurafx.sdk.api.GiftFxCategory
 import com.aurafx.sdk.api.GiftFxLayer
 import com.aurafx.sdk.api.GiftFxOcclusion
 import com.aurafx.sdk.api.GiftFxRendererType
@@ -14,25 +15,52 @@ import org.junit.Test
 
 class GiftFxCatalogTest {
     @Test
-    fun catalogContainsExactlyTenUniqueSamples() {
+    fun catalogContainsExactlyFiftyUniqueSamples() {
         assertThat(GiftFxCatalog.validate()).isEmpty()
-        assertThat(GiftFxCatalog.samples).hasSize(10)
+        assertThat(GiftFxCatalog.samples).hasSize(50)
         val ids = GiftFxCatalog.samples.map { it.giftId }
         assertThat(ids).containsExactlyElementsIn(GiftFxIds.ordered).inOrder()
-        assertThat(ids.toSet()).hasSize(10)
+        assertThat(ids.toSet()).hasSize(50)
+        assertThat(ids.take(10)).containsExactlyElementsIn(GiftFxIds.originalTen).inOrder()
         for (d in GiftFxCatalog.samples) {
             assertThat(d.durationMs).isAtLeast(8000)
             assertThat(d.durationMs).isAtMost(10000)
             assertThat(d.gpuRendered).isTrue()
             assertThat(d.valid()).isTrue()
+            assertThat(d.timeline.valid()).isTrue()
+            assertThat(d.particles.valid()).isTrue()
+            assertThat(d.rendererType).isNotNull()
         }
-        assertThat(GiftFxCatalog.samples.map { it.shaderLook }.toSet()).hasSize(10)
-        assertThat(GiftFxCatalog.samples.map { it.rendererType }.toSet()).hasSize(10)
+        assertThat(GiftFxCatalog.samples.map { it.shaderLook }.toSet()).hasSize(50)
+        assertThat(GiftFxCatalog.samples.map { it.rendererType }.toSet()).hasSize(50)
+        assertThat(GiftFxCatalog.require(GiftFxIds.TIME_FREEZE)!!.durationMs).isEqualTo(8500)
+        assertThat(GiftFxCatalog.require(GiftFxIds.PORTAL_DOOR)!!.durationMs).isEqualTo(9200)
+        assertThat(GiftFxCatalog.require(GiftFxIds.METEOR_CREATURE)!!.durationMs).isEqualTo(8800)
+        assertThat(GiftFxCatalog.require(GiftFxIds.HOLOGRAM_CLONE)!!.durationMs).isEqualTo(9000)
+        assertThat(GiftFxCatalog.require(GiftFxIds.MAGIC_PAINT)!!.durationMs).isEqualTo(9500)
+        assertThat(GiftFxCatalog.require(GiftFxIds.GIANT_SHADOW)!!.durationMs).isEqualTo(8700)
+        assertThat(GiftFxCatalog.require(GiftFxIds.MINI_WORLD)!!.durationMs).isEqualTo(10000)
+        assertThat(GiftFxCatalog.require(GiftFxIds.GRAVITY_FLIP)!!.durationMs).isEqualTo(8200)
+        assertThat(GiftFxCatalog.require(GiftFxIds.MIRROR_DIMENSION)!!.durationMs).isEqualTo(9600)
+        assertThat(GiftFxCatalog.require(GiftFxIds.INK_UNIVERSE)!!.durationMs).isEqualTo(9800)
+        val cats = GiftFxCatalog.samples.map { it.category }.toSet()
+        assertThat(cats).containsAtLeast(
+            GiftFxCategory.Fantasy,
+            GiftFxCategory.SciFi,
+            GiftFxCategory.Nature,
+            GiftFxCategory.Cinematic,
+            GiftFxCategory.Adventure,
+            GiftFxCategory.Cosmic,
+            GiftFxCategory.Magic,
+            GiftFxCategory.Tech,
+            GiftFxCategory.Premium,
+        )
     }
 
     @Test
-    fun shadersCoverAllTenGpuLooks() {
+    fun shadersCoverAllFiftyGpuLooks() {
         assertThat(GiftFxShaders.sourcesOk()).isTrue()
+        assertThat(GiftFxShaders.gpuLookCount()).isEqualTo(50)
         assertThat(AuraFxEffectOrder.gpuIds.last()).isEqualTo(AuraFxEffectOrder.GIFT)
         assertThat(AuraFxEffectOrder.gpuIds).contains(AuraFxEffectOrder.AR)
         assertThat(AuraFxEffectOrder.gpuIds.indexOf(AuraFxEffectOrder.GIFT))
@@ -48,20 +76,21 @@ class GiftFxLifecycleTest {
         val tracking = TrackingData.unavailable(t0)
         val a = engine.play(GiftFxIds.TIME_FREEZE, t0)
         val b = engine.play(GiftFxIds.PORTAL_DOOR, t0)
+        val c = engine.play(GiftFxIds.FINAL_DIMENSION, t0)
         assertThat(a).isNotNull()
         assertThat(b).isNotNull()
-        assertThat(a).isNotEqualTo(b)
-        assertThat(engine.manager.activeCount()).isEqualTo(2)
+        assertThat(c).isNotNull()
+        assertThat(engine.manager.activeCount()).isEqualTo(3)
         engine.tick(t0 + 200_000_000L, 1080, 1920, tracking)
         val snap = ArrayList<GiftFxInstance>()
         engine.manager.snapshotActive(snap)
-        assertThat(snap).hasSize(2)
+        assertThat(snap).hasSize(3)
         assertThat(snap.map { it.phase }.toSet()).contains(GiftFxPhase.Start)
         engine.tick(t0 + 3_000_000_000L, 1080, 1920, tracking)
         engine.manager.snapshotActive(snap)
         assertThat(snap.all { it.phase == GiftFxPhase.Main || it.phase == GiftFxPhase.Buildup }).isTrue()
         engine.stop(a!!)
-        assertThat(engine.manager.activeCount()).isEqualTo(1)
+        assertThat(engine.manager.activeCount()).isEqualTo(2)
         engine.stopAll()
         assertThat(engine.manager.activeCount()).isEqualTo(0)
         val replay = engine.replay(t0 + 4_000_000_000L)
@@ -109,7 +138,7 @@ class GiftFxLifecycleTest {
         val engine = GiftFxEngine()
         engine.play(GiftFxIds.INK_UNIVERSE, 1L)
         engine.stopAll()
-        engine.play(GiftFxIds.MINI_WORLD, 2L)
+        engine.play(GiftFxIds.NEON_TRAIN, 2L)
         engine.reset()
         assertThat(binds[0]).isEqualTo(0)
     }
@@ -195,5 +224,10 @@ class GiftFxDefinitionCoverageTest {
         val gravity = GiftFxCatalog.require(GiftFxIds.GRAVITY_FLIP)!!
         assertThat(gravity.layer).isEqualTo(GiftFxLayer.FullFrame)
         assertThat(gravity.requiredTracking).isEqualTo(GiftFxTrackingNeed.None)
+        val castle = GiftFxCatalog.require(GiftFxIds.FLOATING_CASTLE)!!
+        assertThat(castle.occlusion).isEqualTo(GiftFxOcclusion.PersonMask)
+        assertThat(castle.layer).isEqualTo(GiftFxLayer.BehindSubject)
+        val laser = GiftFxCatalog.require(GiftFxIds.LASER_SHOW)!!
+        assertThat(laser.anchor).isEqualTo(com.aurafx.sdk.api.GiftFxAnchor.Eyes)
     }
 }

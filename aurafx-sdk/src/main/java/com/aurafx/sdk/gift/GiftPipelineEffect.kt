@@ -261,7 +261,7 @@ class GiftPipelineEffect(
         GiftFxOcclusion.PersonAndHair -> 3
     }
 
-    private fun colorR(look: Int) = floatArrayOf(0.6f, 0.3f, 1f, 0.3f, 1f, 0.08f, 0.4f, 0.7f, 0.5f, 0.35f)[look]
-    private fun colorG(look: Int) = floatArrayOf(0.85f, 0.75f, 0.45f, 0.95f, 0.35f, 0.08f, 0.7f, 0.85f, 0.8f, 0.12f)[look]
-    private fun colorB(look: Int) = floatArrayOf(1f, 1f, 0.15f, 1f, 0.55f, 0.12f, 0.9f, 1f, 1f, 0.45f)[look]
+    private fun colorR(look: Int): Float = 0.2f + 0.8f * ((look * 17) % 11).toFloat() / 10f
+    private fun colorG(look: Int): Float = 0.15f + 0.85f * ((look * 9) % 13).toFloat() / 12f
+    private fun colorB(look: Int): Float = 0.2f + 0.8f * ((look * 5) % 7).toFloat() / 6f
 }

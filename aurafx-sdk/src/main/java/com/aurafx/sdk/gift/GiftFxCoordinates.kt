@@ -72,10 +72,22 @@ object GiftFxCoordinates {
                 out[1] = c[1]
                 out[2] = 0.18f
             }
-            GiftFxAnchor.Face, GiftFxAnchor.Head -> {
+            GiftFxAnchor.Face, GiftFxAnchor.Head, GiftFxAnchor.Eyes -> {
                 if (face != null) {
-                    out[0] = if (anchor == GiftFxAnchor.Head) face.forehead[0] else face.pose.faceCx
-                    out[1] = if (anchor == GiftFxAnchor.Head) face.forehead[1] else face.pose.faceCy
+                    when (anchor) {
+                        GiftFxAnchor.Head -> {
+                            out[0] = face.forehead[0]
+                            out[1] = face.forehead[1]
+                        }
+                        GiftFxAnchor.Eyes -> {
+                            out[0] = (face.leftEye[0] + face.rightEye[0]) * 0.5f
+                            out[1] = (face.leftEye[1] + face.rightEye[1]) * 0.5f
+                        }
+                        else -> {
+                            out[0] = face.pose.faceCx
+                            out[1] = face.pose.faceCy
+                        }
+                    }
                     out[2] = face.pose.iod.coerceIn(0.06f, 0.45f)
                 } else if (pose != null) {
                     fillFromPose(pose, GiftFxAnchor.Head, out)
@@ -83,7 +95,7 @@ object GiftFxCoordinates {
                     fallbackHead(width, height, out)
                 }
             }
-            GiftFxAnchor.Body, GiftFxAnchor.Shoulder -> {
+            GiftFxAnchor.Body, GiftFxAnchor.Shoulder, GiftFxAnchor.Torso -> {
                 if (pose != null) {
                     fillFromPose(pose, anchor, out)
                 } else if (face != null) {
@@ -118,7 +130,7 @@ object GiftFxCoordinates {
                 out[1] = (lsy + rsy) * 0.5f
                 out[2] = kotlin.math.abs(rsx - lsx).coerceIn(0.08f, 0.5f)
             }
-            GiftFxAnchor.Head -> {
+            GiftFxAnchor.Head, GiftFxAnchor.Eyes, GiftFxAnchor.Face -> {
                 out[0] = nx
                 out[1] = ny
                 out[2] = kotlin.math.abs(rsx - lsx).coerceIn(0.08f, 0.45f) * 0.55f

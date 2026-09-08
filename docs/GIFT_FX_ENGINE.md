@@ -1,8 +1,10 @@
-# GiftFX Engine (experimental, task 1/2)
+# GiftFX Engine
 
 Standalone GPU gift overlays inside AuraFX. **Not** AuraLive. Physical-device visual QA is **PENDING**.
 
-Play/replay/stop/reset mutate gift instances only. The CameraX bind is unchanged.
+Catalog size: **exactly 50** unique real-time GLES3 gifts (original 10 preserved + 40 new). No PNG stickers, no prerecorded MP4/WebM.
+
+Play/replay/stop/reset mutate gift instances only. The CameraX bind is unchanged. Multiple gifts can run at once.
 
 ## Public API
 
@@ -14,6 +16,6 @@ session.stopAllGifts()
 session.resetGifts()
 ```
 
-## Sample IDs
+Studio **Gifts** tray lists all 50 with Play / Replay / Stop on the live preview.
 
-`gift.time_freeze` · `gift.portal_door` · `gift.meteor_creature` · `gift.hologram_clone` · `gift.magic_paint` · `gift.giant_shadow` · `gift.mini_world` · `gift.gravity_flip` · `gift.mirror_dimension` · `gift.ink_universe`
+Full catalog: [`GIFT_FX_50_CATALOG.md`](GIFT_FX_50_CATALOG.md)

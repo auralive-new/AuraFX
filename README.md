@@ -58,7 +58,9 @@ Photo and video use the **final GPU frame**, not a raw camera dump.
 
 CameraX (single bind) → vision → background → makeup → beauty → hair (color + grooms) → body → lighting → filter → AR → GiftFX → preview / encoder.
 
-GiftFX is a real-time GPU overlay engine (no sticker PNGs, no prerecorded gift videos). Studio’s **Gifts** category plays the first 10 experimental gifts on the live camera preview. Play/stop does **not** rebind the camera. AuraLive / Step 8 is not started.
+GiftFX is a real-time GPU overlay engine (no sticker PNGs, no prerecorded gift videos). Studio’s **Gifts** category lists **50** catalog gifts on the live camera preview. Play/stop does **not** rebind the camera. AuraLive / Step 8 is not started.
+
+Catalog: [`docs/GIFT_FX_50_CATALOG.md`](docs/GIFT_FX_50_CATALOG.md)
 
 Docs: [`docs/STEP_7_FINAL_SDK_QA.md`](docs/STEP_7_FINAL_SDK_QA.md) · inventory: [`docs/REFERENCE_FEATURE_INVENTORY.md`](docs/REFERENCE_FEATURE_INVENTORY.md)
 

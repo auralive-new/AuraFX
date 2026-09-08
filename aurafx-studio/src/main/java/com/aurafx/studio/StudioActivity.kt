@@ -501,7 +501,7 @@ class StudioActivity : AppCompatActivity(), SurfaceHolder.Callback {
                     bindCategory(target)
                 }
                 gifts.forEach { g ->
-                    action(g.displayName) {
+                    action("${g.displayName} · ${g.category.name}") {
                         selectedGiftId = g.giftId
                         when (val r = target.playGift(g.giftId)) {
                             is AuraFxResult.Ok -> setStatus("Gift ${g.displayName}")

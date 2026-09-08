@@ -10,10 +10,10 @@ enum class GiftFxPhase {
 }
 
 data class GiftFxTimelineSpec(
-    val startEnd: Float = 0.12f,
-    val buildupEnd: Float = 0.35f,
-    val mainEnd: Float = 0.72f,
-    val finaleEnd: Float = 0.90f,
+    val startEnd: Float = 0.16f,
+    val buildupEnd: Float = 0.34f,
+    val mainEnd: Float = 0.76f,
+    val finaleEnd: Float = 0.92f,
 ) {
     fun valid(): Boolean =
         startEnd in 0.05f..0.2f &&
