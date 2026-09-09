@@ -64,6 +64,10 @@ Catalog: [`docs/GIFT_FX_50_CATALOG.md`](docs/GIFT_FX_50_CATALOG.md)
 
 Docs: [`docs/STEP_7_FINAL_SDK_QA.md`](docs/STEP_7_FINAL_SDK_QA.md) · inventory: [`docs/REFERENCE_FEATURE_INVENTORY.md`](docs/REFERENCE_FEATURE_INVENTORY.md)
 
+## Android Studio (device testing)
+
+Open the **repository root** in Android Studio — the folder that contains `settings.gradle.kts`. In this workspace that path is `/workspace`. Run the **aurafx-studio** app on a physical device. Details: [`docs/ANDROID_STUDIO_LOCAL.md`](docs/ANDROID_STUDIO_LOCAL.md).
+
 ## Build
 
 Requires JDK 17+ and Android SDK 35.
