@@ -67,6 +67,9 @@ internal class AuraFxRenderThread(
     private val firstFrameNotified = AtomicBoolean(false)
     private val released = AtomicBoolean(false)
     private val liveCameraActive = AtomicBoolean(false)
+    private val showUnprocessedPreview = AtomicBoolean(false)
+    @Volatile private var cameraBufW = 1280
+    @Volatile private var cameraBufH = 720
     private val recorder = ProcessedVideoRecorder(performance)
     private val photoIo = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "aurafx-photo").apply { isDaemon = true }
@@ -113,6 +116,11 @@ internal class AuraFxRenderThread(
             firstFrameNotified.set(false)
         }
         AuraFxLog.i("liveCameraActive=$active")
+    }
+
+    fun setShowUnprocessedPreview(showRaw: Boolean) {
+        showUnprocessedPreview.set(showRaw)
+        AuraFxLog.i("showUnprocessedPreview=$showRaw")
     }
 
     fun isRecording(): Boolean = recorder.isRunning()
@@ -166,18 +174,24 @@ internal class AuraFxRenderThread(
     fun setCameraBufferSize(width: Int, height: Int) {
         handler.runSync {
             AuraFxLog.i("SurfaceTexture setDefaultBufferSize ${width}x${height}")
+            cameraBufW = width.coerceAtLeast(1)
+            cameraBufH = height.coerceAtLeast(1)
+            performance.setCameraResolution(cameraBufW, cameraBufH)
             surfaceTexture?.setDefaultBufferSize(width, height)
         }
     }
 
     fun attachOutput(surface: Surface, width: Int, height: Int) {
-        handler.post {
+        if (width <= 0 || height <= 0) {
+            throw IllegalArgumentException("Preview surface size must be > 0 (got ${width}x${height})")
+        }
+        handler.runSync(timeoutMs = 2_500) {
             try {
                 detachWindowLocked()
                 outputSurface = surface
                 viewportW = width
                 viewportH = height
-                val eglCore = egl ?: return@post
+                val eglCore = egl ?: throw IllegalStateException("EGL not ready")
                 windowSurface = eglCore.createWindowSurface(surface)
                 eglCore.makeCurrent(windowSurface)
                 GLES30.glViewport(0, 0, width, height)
@@ -188,6 +202,7 @@ internal class AuraFxRenderThread(
             } catch (t: Throwable) {
                 AuraFxLog.e("Failed to attach preview surface", t)
                 postError(AuraFxError.GpuFailure("Failed to attach preview surface", t))
+                throw t
             }
         }
     }
@@ -203,6 +218,7 @@ internal class AuraFxRenderThread(
     }
 
     fun resize(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
         handler.post {
             viewportW = width
             viewportH = height
@@ -261,15 +277,17 @@ internal class AuraFxRenderThread(
         checkGl("texture setup")
 
         val st = SurfaceTexture(oesTextureId)
-        st.setDefaultBufferSize(1280, 720)
+        st.setDefaultBufferSize(720, 1280)
         st.setOnFrameAvailableListener({ onCameraFrameAvailable() }, handler)
         surfaceTexture = st
         cameraSurface = Surface(st)
 
         effects.attach(EffectContext(eglCore.context, performance))
+        val rendererName = GLES30.glGetString(GLES30.GL_RENDERER)
+        performance.setGpuRenderer(rendererName)
         AuraFxLog.i(
             "EGL/GLES ready oesTex=$oesTextureId gpuTimer=${gpuTimer.supported} " +
-                "renderer=BlitProgram OES",
+                "renderer=$rendererName",
         )
     }
 
@@ -293,33 +311,35 @@ internal class AuraFxRenderThread(
             st.getTransformMatrix(texMatrix)
             val eglCore = egl ?: return
             eglCore.makeCurrent(windowSurface)
-            if (viewportW > 0 && viewportH > 0) {
-                GLES30.glViewport(0, 0, viewportW, viewportH)
-            }
+            applyLetterboxedViewport()
             val visionFrame = VisionFrame(
                 timestampNs = timestampNs,
-                width = viewportW,
-                height = viewportH,
+                width = cameraBufW,
+                height = cameraBufH,
                 oesTextureId = oesTextureId,
                 texMatrix = texMatrix,
             )
             val tracking = vision.process(visionFrame)
             val frameContext = FrameContext(
                 timestampNs = timestampNs,
-                width = viewportW,
-                height = viewportH,
+                width = cameraBufW,
+                height = cameraBufH,
                 inputTextureId = oesTextureId,
                 inputIsOes = true,
                 texMatrix = texMatrix,
                 lensFacing = facing,
             )
-            effects.process(frameContext, tracking)
+            val bypassEffects = showUnprocessedPreview.get()
+            if (!bypassEffects) {
+                effects.process(frameContext, tracking)
+            }
 
             val previousGpuNs = gpuTimer.pollNs()
             gpuTimer.begin()
+            GLES30.glClearColor(0f, 0f, 0f, 1f)
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
             val mirror = mirrorFrontCamera && facing == LensFacing.FRONT
-            if (frameContext.processedTextureId != 0 && !frameContext.outputIsOes()) {
+            if (!bypassEffects && frameContext.processedTextureId != 0 && !frameContext.outputIsOes()) {
                 blit.draw2d(frameContext.outputTextureId(), mirrorX = false)
             } else {
                 blit.drawOes(oesTextureId, texMatrix, mirror)
@@ -412,6 +432,28 @@ internal class AuraFxRenderThread(
             AuraFxLog.e("Processed photo capture failed", t)
             mainPoster { job.done(AuraFxResult.Err(AuraFxError.GpuFailure("Processed photo capture failed", t))) }
         }
+    }
+
+    private fun applyLetterboxedViewport() {
+        val viewW = viewportW
+        val viewH = viewportH
+        if (viewW <= 0 || viewH <= 0) return
+        val bufW = cameraBufW.coerceAtLeast(1).toFloat()
+        val bufH = cameraBufH.coerceAtLeast(1).toFloat()
+        val viewAspect = viewW.toFloat() / viewH.toFloat()
+        val bufAspect = bufW / bufH
+        var vpW = viewW
+        var vpH = viewH
+        var x = 0
+        var y = 0
+        if (bufAspect > viewAspect) {
+            vpH = (viewW / bufAspect).toInt().coerceAtLeast(1)
+            y = (viewH - vpH) / 2
+        } else if (bufAspect < viewAspect) {
+            vpW = (viewH * bufAspect).toInt().coerceAtLeast(1)
+            x = (viewW - vpW) / 2
+        }
+        GLES30.glViewport(x, y, vpW, vpH)
     }
 
     private fun drainTexture() {

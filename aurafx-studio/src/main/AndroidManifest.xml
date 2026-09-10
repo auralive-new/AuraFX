@@ -12,7 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AuraFxStudio">
         <activity
-            android:name=".StudioActivity"
+            android:name="com.aurafx.deviceui.DeviceStudioActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true"
             android:screenOrientation="portrait">
@@ -21,6 +21,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".StudioActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".EditorActivity"
             android:exported="false"

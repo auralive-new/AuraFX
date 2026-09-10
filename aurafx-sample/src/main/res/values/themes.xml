@@ -1,7 +1,8 @@
 <resources>
     <style name="Theme.AuraFxSample" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="android:statusBarColor">@color/bg</item>
-        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:windowBackground">@color/bg</item>
         <item name="colorPrimary">@color/accent</item>
     </style>

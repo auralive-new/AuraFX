@@ -28,6 +28,12 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
+    sourceSets {
+        getByName("main") {
+            java.srcDir(rootProject.file("device-studio/src/main/java"))
+        }
+    }
 }
 
 dependencies {

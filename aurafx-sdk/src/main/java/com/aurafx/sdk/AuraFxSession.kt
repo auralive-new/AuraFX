@@ -197,19 +197,29 @@ class AuraFxSession internal constructor(
         if (!surface.isValid) {
             return AuraFxResult.Err(AuraFxError.GpuFailure("Preview surface is not valid"))
         }
+        if (width <= 0 || height <= 0) {
+            return AuraFxResult.Err(
+                AuraFxError.InvalidState("attachPreview requires a non-zero surface size, got ${width}x${height}"),
+            )
+        }
         val glError = renderer.awaitReady()
         if (glError != null) return AuraFxResult.Err(glError)
-        renderer.attachOutput(surface, width, height)
-        previewReady = true
-        AuraFxLog.i("attachPreview ${width}x${height}")
-        if (wantRunning.get() && pausedByLifecycle.get()) {
-            val owner = lifecycleOwner
-            if (owner != null) {
-                pausedByLifecycle.set(false)
-                startCameraInternal(owner, lastFacing)
+        return try {
+            renderer.attachOutput(surface, width, height)
+            previewReady = true
+            AuraFxLog.i("attachPreview ${width}x${height}")
+            if (wantRunning.get() && pausedByLifecycle.get()) {
+                val owner = lifecycleOwner
+                if (owner != null) {
+                    pausedByLifecycle.set(false)
+                    startCameraInternal(owner, lastFacing)
+                }
             }
+            AuraFxResult.Ok(Unit)
+        } catch (t: Throwable) {
+            previewReady = false
+            AuraFxResult.Err(AuraFxError.GpuFailure("Failed to attach preview surface", t))
         }
-        return AuraFxResult.Ok(Unit)
     }
 
     fun detachPreview() {
@@ -219,7 +229,11 @@ class AuraFxSession internal constructor(
     }
 
     fun resizePreview(width: Int, height: Int) {
-        if (!released.get()) renderer.resize(width, height)
+        if (!released.get() && width > 0 && height > 0) renderer.resize(width, height)
+    }
+
+    fun setShowUnprocessedPreview(showRaw: Boolean) {
+        if (!released.get()) renderer.setShowUnprocessedPreview(showRaw)
     }
 
     fun startCamera(lifecycleOwner: LifecycleOwner, lensFacing: LensFacing): AuraFxResult<Unit> {
@@ -567,7 +581,23 @@ class AuraFxSession internal constructor(
 
     fun unregisterEffect(id: String) = effects.unregister(id)
 
-    fun performanceSnapshot(): PerformanceSnapshot = performance.snapshot()
+    fun performanceSnapshot(): PerformanceSnapshot {
+        val snap = performance.snapshot()
+        val track = vision.latest()
+        val state = when {
+            released.get() -> "released"
+            camera.isBound() -> "camera_live"
+            previewReady -> "preview_attached"
+            else -> "idle"
+        }
+        return snap.copy(
+            trackingStatus = track.status.name,
+            trackedFaces = maxOf(track.faces.size, track.meshes.size, if (track.landmarks != null) 1 else 0),
+            cameraBound = camera.isBound(),
+            cameraFacing = lastFacing.name,
+            sdkState = state,
+        )
+    }
 
     fun isCameraBound(): Boolean = camera.isBound()
 

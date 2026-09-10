@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
@@ -11,7 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AuraFxSample">
         <activity
-            android:name=".SampleActivity"
+            android:name="com.aurafx.deviceui.DeviceStudioActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true"
             android:screenOrientation="portrait">
@@ -20,5 +21,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SampleActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
     </application>
 </manifest>

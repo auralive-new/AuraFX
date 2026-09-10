@@ -11,8 +11,8 @@ android {
         applicationId = "com.aurafx.studio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.7.0-step7"
+        versionCode = 8
+        versionName = "0.8.0-device-studio"
     }
 
     compileOptions {
@@ -27,6 +27,12 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+
+    sourceSets {
+        getByName("main") {
+            java.srcDir(rootProject.file("device-studio/src/main/java"))
+        }
     }
 }
 

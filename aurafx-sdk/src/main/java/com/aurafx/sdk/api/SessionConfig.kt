@@ -7,8 +7,10 @@ package com.aurafx.sdk.api
  * supported size. They are not a guarantee of exact resolution.
  */
 data class SessionConfig(
-    val preferredPreviewWidth: Int = 1280,
-    val preferredPreviewHeight: Int = 720,
+    val preferredPreviewWidth: Int = 720,
+    val preferredPreviewHeight: Int = 1280,
+    val targetMinFps: Int = 30,
+    val targetMaxFps: Int = 60,
     val mirrorFrontCamera: Boolean = true,
     val enableFaceLandmarks: Boolean = true,
     val listener: AuraFxSessionListener? = null,

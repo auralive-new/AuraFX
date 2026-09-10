@@ -66,7 +66,11 @@ Docs: [`docs/STEP_7_FINAL_SDK_QA.md`](docs/STEP_7_FINAL_SDK_QA.md) · inventory:
 
 ## Android Studio (device testing)
 
-Open the **repository root** in Android Studio — the folder that contains `settings.gradle.kts`. In this workspace that path is `/workspace`. Run the **aurafx-studio** app on a physical device. Details: [`docs/ANDROID_STUDIO_LOCAL.md`](docs/ANDROID_STUDIO_LOCAL.md).
+Open the **repository root** in Android Studio — the folder that contains `settings.gradle.kts`. Run **aurafx-sample** or **aurafx-studio**. Both launch **AuraFX Studio** (`DeviceStudioActivity`): auto-starts the front camera, inset-safe bottom sheet, and live SDK categories.
+
+The previous diagnostic screens remain in the APK (long-press the FPS chip, then **Open diagnostic harness**).
+
+Details: [`docs/ANDROID_STUDIO_LOCAL.md`](docs/ANDROID_STUDIO_LOCAL.md).
 
 ## Build
 

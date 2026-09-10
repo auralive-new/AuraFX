@@ -42,6 +42,18 @@ class PerformanceManager(
     private var lastPhotoNs: Long? = null
     private var encoderFrames = 0L
     private var encoderDropped = 0L
+    @Volatile private var gpuRenderer: String? = null
+    @Volatile private var cameraWidth: Int = 0
+    @Volatile private var cameraHeight: Int = 0
+
+    fun setGpuRenderer(name: String?) {
+        gpuRenderer = name
+    }
+
+    fun setCameraResolution(width: Int, height: Int) {
+        cameraWidth = width
+        cameraHeight = height
+    }
 
     fun markCameraStart() {
         if (!enabled) return
@@ -151,6 +163,9 @@ class PerformanceManager(
                 lastPhotoCaptureMs = lastPhotoNs?.let { it / 1_000_000f },
                 encoderFrames = encoderFrames,
                 encoderDroppedFrames = encoderDropped,
+                gpuRenderer = gpuRenderer,
+                cameraWidth = cameraWidth,
+                cameraHeight = cameraHeight,
             )
         }
     }

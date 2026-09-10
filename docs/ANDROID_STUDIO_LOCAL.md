@@ -18,9 +18,10 @@ After a local clone, it is whatever folder you cloned into (still the folder wit
 
 1. Install **Android Studio** with **JDK 17** and **Android SDK 35**.
 2. Open `/workspace` (or your clone of that root). Let Gradle sync.
-3. Select the **aurafx-studio** run configuration (application id `com.aurafx.studio`).
+3. Select the **aurafx-sample** or **aurafx-studio** run configuration.
 4. Connect a **physical** phone (GLES 3, camera). Emulators are a poor match for this GPU + MediaPipe pipeline.
-5. Run. Grant **CAMERA** (and mic if you record).
+5. Run. Grant **CAMERA**. The Studio screen auto-starts the **front camera** and shows a draggable Beauty sheet above the system navigation bar.
+6. Long-press the FPS chip (debug builds) to open the QA panel. From there you can open the legacy diagnostic harness if needed.
 
 `local.properties` is machine-specific and gitignored. Android Studio writes `sdk.dir` when you open the project.
 

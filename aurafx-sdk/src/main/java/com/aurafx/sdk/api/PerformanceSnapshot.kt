@@ -22,4 +22,12 @@ data class PerformanceSnapshot(
     val lastPhotoCaptureMs: Float? = null,
     val encoderFrames: Long = 0,
     val encoderDroppedFrames: Long = 0,
+    val gpuRenderer: String? = null,
+    val cameraWidth: Int = 0,
+    val cameraHeight: Int = 0,
+    val trackingStatus: String? = null,
+    val trackedFaces: Int = 0,
+    val cameraBound: Boolean = false,
+    val cameraFacing: String? = null,
+    val sdkState: String? = null,
 )
