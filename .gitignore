@@ -1,22 +1,38 @@
+# Android Studio / Gradle
+.gradle/
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea
-.DS_Store
-/build
-**/build
-/captures
+.navigation/
+captures/
 .externalNativeBuild
-.cxx
+.cxx/
+local.properties
+**/local.properties
+
+# Build outputs
+/build
+**/build/
 *.apk
+*.aab
 *.aar
 *.ap_
 *.dex
-.kotlin
+*.apks
+*.log
+.kotlin/
+.android/
+*.hprof
+
+# Signing (never commit real keystores)
+*.jks
+*.keystore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local packaging leftovers
+aurafx-android-studio.zip
 /aurafx-sample/release
 /aurafx-sdk/release
-*.log
-.android
-.cxx
-*.hprof
-aurafx-android-studio.zip
+/aurafx-studio/release
