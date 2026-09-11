@@ -89,7 +89,10 @@ class FilterPipelineEffect(
     override fun process(frame: FrameContext, tracking: TrackingData) {
         if (!attached || frame.width <= 0 || frame.height <= 0) return
         val snap = rig.snapshot()
-        if (snap.isIdentity()) return
+        if (snap.isIdentity()) {
+            AuraFxLog.debugThrottled("filter skip: identity id=${snap.definition?.id} intensity=${snap.intensity}")
+            return
+        }
         val def = snap.definition ?: return
         ensureTargets(frame.width, frame.height)
         val incoming = frame.processedTextureId

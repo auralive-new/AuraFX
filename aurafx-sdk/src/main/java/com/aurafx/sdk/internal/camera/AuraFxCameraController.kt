@@ -214,7 +214,7 @@ internal class AuraFxCameraController(
         val analysisSelector = ResolutionSelector.Builder()
             .setResolutionStrategy(
                 ResolutionStrategy(
-                    Size(320, 320),
+                    Size(360, 640),
                     ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
                 ),
             )

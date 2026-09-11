@@ -94,11 +94,16 @@ class BeautyPipelineEffect(
         if (!attached || frame.width <= 0 || frame.height <= 0) return
         val snap = rig.snapshot()
         val landmarks = tracking.landmarks
-        val incoming = frame.processedTextureId
-        if (snap.isIdentity() || landmarks == null) {
+        if (snap.isIdentity()) return
+        if (landmarks == null) {
+            AuraFxLog.debugThrottled(
+                "beauty skip: landmarks=null status=${tracking.status} faces=${tracking.faces.size} " +
+                    "provider=${tracking.visionProvider}",
+            )
             return
         }
         ensureTargets(frame.width, frame.height)
+        val incoming = frame.processedTextureId
         if (incoming != 0 && !frame.processedIsOes) {
             copyPrevious(incoming)
         } else {

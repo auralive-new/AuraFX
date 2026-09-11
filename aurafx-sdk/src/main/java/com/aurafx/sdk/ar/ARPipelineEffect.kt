@@ -92,8 +92,11 @@ class ARPipelineEffect(
         val snap = rig.snapshot()
         if (snap.isIdentity()) return
         val def = snap.effectId?.let { AREffectCatalog.require(it) } ?: return
-        val tr = ARTrackingContext.from(tracking.landmarks) ?: return
-        if (!tr.allFinite()) return
+        val tr = ARTrackingContext.from(tracking.landmarks)
+        if (tr == null || !tr.allFinite()) {
+            AuraFxLog.debugThrottled("ar skip: no usable face tracking for ${snap.effectId}")
+            return
+        }
         if (lastEffect != def.id) {
             anim.reset()
             lastEffect = def.id

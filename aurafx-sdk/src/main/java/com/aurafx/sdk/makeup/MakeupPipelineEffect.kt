@@ -82,7 +82,11 @@ class MakeupPipelineEffect(
         if (!attached || frame.width <= 0 || frame.height <= 0) return
         val snap = rig.snapshot()
         val lm = tracking.landmarks
-        if (snap.isIdentity() || lm == null) return
+        if (snap.isIdentity()) return
+        if (lm == null) {
+            AuraFxLog.debugThrottled("makeup skip: landmarks=null status=${tracking.status}")
+            return
+        }
         val geo = MakeupGeometryBuilder.build(lm, snap)
         ensure(frame.width, frame.height)
         val incoming = frame.processedTextureId

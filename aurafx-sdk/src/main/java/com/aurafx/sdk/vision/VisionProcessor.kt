@@ -61,22 +61,40 @@ class VisionProcessor {
     fun process(frame: VisionFrame): TrackingData {
         val fromAnalyzer = published.get()
         if (fromAnalyzer.status == VisionStatus.READY) {
-            return fromAnalyzer.copy(frameTimestampNs = frame.timestampNs)
+            return hydrateLandmarks(fromAnalyzer.copy(frameTimestampNs = frame.timestampNs))
         }
         if (faceDetector == null && faceLandmarkTracker == null && faceTracker == null &&
             irisTracker == null && segmenter == null && poseTracker == null
         ) {
             return TrackingData.unavailable(frame.timestampNs)
         }
-        return TrackingData(
-            status = VisionStatus.READY,
-            frameTimestampNs = frame.timestampNs,
-            faces = faceDetector?.detect(frame).orEmpty(),
-            meshes = faceLandmarkTracker?.detect(frame).orEmpty(),
-            tracks = faceTracker?.track(frame).orEmpty(),
-            iris = irisTracker?.track(frame).orEmpty(),
-            segmentation = segmenter?.segment(frame),
-            pose = poseTracker?.detect(frame).orEmpty(),
+        return hydrateLandmarks(
+            TrackingData(
+                status = VisionStatus.READY,
+                frameTimestampNs = frame.timestampNs,
+                faces = faceDetector?.detect(frame).orEmpty(),
+                meshes = faceLandmarkTracker?.detect(frame).orEmpty(),
+                tracks = faceTracker?.track(frame).orEmpty(),
+                iris = irisTracker?.track(frame).orEmpty(),
+                segmentation = segmenter?.segment(frame),
+                pose = poseTracker?.detect(frame).orEmpty(),
+            ),
+        )
+    }
+
+    private fun hydrateLandmarks(data: TrackingData): TrackingData {
+        if (data.landmarks != null) return data
+        val mesh = data.meshes.firstOrNull() ?: return data
+        val count = mesh.vertices.size / 2
+        if (count < 4) return data
+        return data.copy(
+            landmarks = FaceLandmarks(
+                trackingId = mesh.trackingId,
+                xy = mesh.vertices,
+                count = count,
+                timestampNs = data.frameTimestampNs,
+                stable = false,
+            ),
         )
     }
 }

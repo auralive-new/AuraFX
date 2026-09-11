@@ -39,4 +39,23 @@ class VisionProcessorTest {
         assertThat(data.faces[0].trackingId).isEqualTo(7)
         assertThat(data.meshes).isEmpty()
     }
+
+    @Test
+    fun hydratesLandmarksFromPublishedMesh() {
+        val processor = VisionProcessor()
+        processor.publish(
+            TrackingData(
+                status = VisionStatus.READY,
+                frameTimestampNs = 1L,
+                meshes = listOf(
+                    FaceMesh(trackingId = 3, vertices = floatArrayOf(0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f), indices = null),
+                ),
+            ),
+        )
+        val data = processor.process(VisionFrame(9L, 10, 10, 1, FloatArray(16)))
+        assertThat(data.landmarks).isNotNull()
+        assertThat(data.landmarks!!.count).isEqualTo(4)
+        assertThat(data.landmarks!!.trackingId).isEqualTo(3)
+        assertThat(data.frameTimestampNs).isEqualTo(9L)
+    }
 }
