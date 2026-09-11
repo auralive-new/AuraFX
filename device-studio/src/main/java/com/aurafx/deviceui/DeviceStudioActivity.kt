@@ -86,6 +86,8 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
     private lateinit var beforeButton: MaterialButton
     private lateinit var recordButton: MaterialButton
     private lateinit var sheetBehavior: BottomSheetBehavior<LinearLayout>
+    private lateinit var contentColumn: LinearLayout
+    private lateinit var previewHost: FrameLayout
 
     private var session: AuraFxSession? = null
     private var previewWindow: Surface? = null
@@ -152,13 +154,26 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
             setBackgroundColor(COL_BG)
         }
 
-        textureView = TextureView(this).apply {
+        contentColumn = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             layoutParams = CoordinatorLayout.LayoutParams(MATCH, MATCH)
+        }
+
+        textureView = TextureView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(MATCH, MATCH)
             surfaceTextureListener = this@DeviceStudioActivity
-            isOpaque = false
+            isOpaque = true
             elevation = 0f
         }
-        root.addView(textureView)
+        val previewFrame = PortraitPreviewFrame(this).apply {
+            layoutParams = FrameLayout.LayoutParams(WRAP, WRAP, Gravity.CENTER)
+            setBackgroundColor(COL_BG)
+            addView(textureView)
+        }
+        previewHost = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(MATCH, 0, 1f)
+            addView(previewFrame)
+        }
 
         val topBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -199,13 +214,15 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         }
         val topStack = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = CoordinatorLayout.LayoutParams(MATCH, WRAP)
+            layoutParams = LinearLayout.LayoutParams(MATCH, WRAP)
             elevation = dp(12).toFloat()
             addView(topBar)
             addView(statusChip)
             addView(qaPanel)
         }
-        root.addView(topStack)
+        contentColumn.addView(topStack)
+        contentColumn.addView(previewHost)
+        root.addView(contentColumn)
 
         sheet = buildSheet()
         val sheetLp = CoordinatorLayout.LayoutParams(MATCH, MATCH).apply {
@@ -226,6 +243,19 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         sheetBehavior.peekHeight = dp(168)
         sheetBehavior.expandedOffset = dp(72)
         sheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        sheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                val peek = sheetBehavior.peekHeight
+                contentColumn.setPadding(
+                    0,
+                    0,
+                    0,
+                    if (newState == BottomSheetBehavior.STATE_EXPANDED) 0 else peek,
+                )
+            }
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
+        })
 
         setContentView(root)
 
@@ -238,7 +268,9 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
             topStack.setPadding(bars.left, bars.top, bars.right, 0)
             sheet.setPadding(bars.left, dp(8), bars.right, bars.bottom + dp(12))
             sheetBehavior.expandedOffset = bars.top + dp(8)
-            sheetBehavior.peekHeight = dp(168) + bars.bottom
+            val peek = dp(168) + bars.bottom
+            sheetBehavior.peekHeight = peek
+            contentColumn.setPadding(0, 0, 0, peek)
             insets
         }
         ViewCompat.requestApplyInsets(root)
@@ -696,11 +728,31 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                 action("Reset hair") { target.resetHair(); bindCategory(target) }
             }
             StudioCategory.FullLook -> {
-                note("Full Look applies real makeup presets through the makeup engine.")
-                action("Classic look") { target.applyMakeupPreset(MakeupPreset.Classic); bindCategory(target) }
-                action("Bright look") { target.applyMakeupPreset(MakeupPreset.Bright); bindCategory(target) }
-                action("Extravagant look") { target.applyMakeupPreset(MakeupPreset.Extravagant); bindCategory(target) }
-                action("Clear look") { target.resetMakeup(); bindCategory(target) }
+                note("Full Look applies real makeup, modest beauty, and a grade through existing engines.")
+                action("Classic look") {
+                    target.applyMakeupPreset(MakeupPreset.Classic)
+                    target.beauty { fineSmooth = 0.35f; whiten = 0.2f }
+                    target.setFilter("natural.true", 0.45f)
+                    bindCategory(target)
+                }
+                action("Bright look") {
+                    target.applyMakeupPreset(MakeupPreset.Bright)
+                    target.beauty { fineSmooth = 0.4f; toothWhiten = 0.25f }
+                    target.setFilter("glow.pearl", 0.5f)
+                    bindCategory(target)
+                }
+                action("Extravagant look") {
+                    target.applyMakeupPreset(MakeupPreset.Extravagant)
+                    target.faceShape { vFace = 0.2f; eyeEnlarge = 0.15f }
+                    target.setFilter("warm.golden", 0.55f)
+                    bindCategory(target)
+                }
+                action("Clear look") {
+                    target.resetMakeup()
+                    target.resetBeauty()
+                    target.clearFilter()
+                    bindCategory(target)
+                }
             }
             StudioCategory.Outfit -> {
                 comingSoon("Outfit")
