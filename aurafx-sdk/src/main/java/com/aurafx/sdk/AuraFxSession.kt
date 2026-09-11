@@ -571,9 +571,10 @@ class AuraFxSession internal constructor(
 
     fun visionDiagnostics(): String {
         val t = vision.latest()
-        val face = if (t.landmarks != null) "face ${t.landmarks.count}pts" else "no face"
+        val face = t.landmarks?.let { "face ${it.count}pts" } ?: "no face"
         val seg = t.segmentation?.let { "person ${"%.0f".format(it.personCoverage * 100f)}%" } ?: "no mask"
-        return "$face · $seg · ${t.visionProvider.ifBlank { t.status.name.lowercase() }}"
+        val provider = t.visionProvider?.ifBlank { null } ?: t.status.name.lowercase()
+        return "$face · $seg · $provider"
     }
 
     fun filterCatalog(): List<FilterDefinition> = filterEngine.catalog()
