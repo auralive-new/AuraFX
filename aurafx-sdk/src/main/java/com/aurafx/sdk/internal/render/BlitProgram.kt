@@ -51,13 +51,24 @@ internal class BlitProgram {
         checkGl("blit vao")
     }
 
-    fun drawOes(textureId: Int, texMatrix: FloatArray, mirrorX: Boolean) {
-        draw(oesProgram, GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId, texMatrix, mirrorX)
+    fun drawOes(
+        textureId: Int,
+        texMatrix: FloatArray,
+        mirrorX: Boolean,
+        coverScaleX: Float = 1f,
+        coverScaleY: Float = 1f,
+    ) {
+        draw(oesProgram, GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId, texMatrix, mirrorX, coverScaleX, coverScaleY)
     }
 
-    fun draw2d(textureId: Int, mirrorX: Boolean) {
+    fun draw2d(
+        textureId: Int,
+        mirrorX: Boolean,
+        coverScaleX: Float = 1f,
+        coverScaleY: Float = 1f,
+    ) {
         android.opengl.Matrix.setIdentityM(tmpMatrix, 0)
-        draw(tex2dProgram, GLES30.GL_TEXTURE_2D, textureId, tmpMatrix, mirrorX)
+        draw(tex2dProgram, GLES30.GL_TEXTURE_2D, textureId, tmpMatrix, mirrorX, coverScaleX, coverScaleY)
     }
 
     private fun draw(
@@ -66,6 +77,8 @@ internal class BlitProgram {
         textureId: Int,
         texMatrix: FloatArray,
         mirrorX: Boolean,
+        coverScaleX: Float,
+        coverScaleY: Float,
     ) {
         GLES30.glUseProgram(program)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
@@ -73,6 +86,10 @@ internal class BlitProgram {
         GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "uTexture"), 0)
         GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(program, "uTexMatrix"), 1, false, texMatrix, 0)
         GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "uMirror"), if (mirrorX) -1f else 1f)
+        val coverLoc = GLES30.glGetUniformLocation(program, "uCoverScale")
+        if (coverLoc >= 0) {
+            GLES30.glUniform2f(coverLoc, coverScaleX.coerceAtLeast(1f), coverScaleY.coerceAtLeast(1f))
+        }
         GLES30.glBindVertexArray(vao)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
         GLES30.glBindVertexArray(0)
@@ -132,9 +149,10 @@ layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec2 aTex;
 uniform mat4 uTexMatrix;
 uniform float uMirror;
+uniform vec2 uCoverScale;
 out vec2 vTex;
 void main() {
-  gl_Position = vec4(aPos.x * uMirror, aPos.y, 0.0, 1.0);
+  gl_Position = vec4(aPos.x * uMirror * uCoverScale.x, aPos.y * uCoverScale.y, 0.0, 1.0);
   vec4 t = uTexMatrix * vec4(aTex, 0.0, 1.0);
   vTex = t.xy;
 }

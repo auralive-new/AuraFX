@@ -311,7 +311,10 @@ internal class AuraFxRenderThread(
             st.getTransformMatrix(texMatrix)
             val eglCore = egl ?: return
             eglCore.makeCurrent(windowSurface)
-            applyLetterboxedViewport()
+            val cover = previewCoverScale()
+            if (viewportW > 0 && viewportH > 0) {
+                GLES30.glViewport(0, 0, viewportW, viewportH)
+            }
             val visionFrame = VisionFrame(
                 timestampNs = timestampNs,
                 width = cameraBufW,
@@ -340,9 +343,20 @@ internal class AuraFxRenderThread(
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
             val mirror = mirrorFrontCamera && facing == LensFacing.FRONT
             if (!bypassEffects && frameContext.processedTextureId != 0 && !frameContext.outputIsOes()) {
-                blit.draw2d(frameContext.outputTextureId(), mirrorX = false)
+                blit.draw2d(
+                    frameContext.outputTextureId(),
+                    mirrorX = false,
+                    coverScaleX = cover.first,
+                    coverScaleY = cover.second,
+                )
             } else {
-                blit.drawOes(oesTextureId, texMatrix, mirror)
+                blit.drawOes(
+                    oesTextureId,
+                    texMatrix,
+                    mirror,
+                    coverScaleX = cover.first,
+                    coverScaleY = cover.second,
+                )
             }
             gpuTimer.end()
             presentCaptureSinks(eglCore, frameContext, timestampNs)
@@ -434,26 +448,25 @@ internal class AuraFxRenderThread(
         }
     }
 
-    private fun applyLetterboxedViewport() {
+    /**
+     * Center-crop the processed frame into the window. Camera buffer size stays unchanged;
+     * it must not letterbox a small rectangle inside a tall phone display.
+     */
+    private fun previewCoverScale(): Pair<Float, Float> {
         val viewW = viewportW
         val viewH = viewportH
-        if (viewW <= 0 || viewH <= 0) return
+        if (viewW <= 0 || viewH <= 0) return 1f to 1f
         val bufW = cameraBufW.coerceAtLeast(1).toFloat()
         val bufH = cameraBufH.coerceAtLeast(1).toFloat()
         val viewAspect = viewW.toFloat() / viewH.toFloat()
         val bufAspect = bufW / bufH
-        var vpW = viewW
-        var vpH = viewH
-        var x = 0
-        var y = 0
-        if (bufAspect > viewAspect) {
-            vpH = (viewW / bufAspect).toInt().coerceAtLeast(1)
-            y = (viewH - vpH) / 2
+        return if (bufAspect > viewAspect) {
+            (bufAspect / viewAspect) to 1f
         } else if (bufAspect < viewAspect) {
-            vpW = (viewH * bufAspect).toInt().coerceAtLeast(1)
-            x = (viewW - vpW) / 2
+            1f to (viewAspect / bufAspect)
+        } else {
+            1f to 1f
         }
-        GLES30.glViewport(x, y, vpW, vpH)
     }
 
     private fun drainTexture() {

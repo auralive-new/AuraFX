@@ -57,7 +57,7 @@ import java.io.File
 class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureListener {
 
     private enum class StudioCategory(val label: String) {
-        Beauty("Beauty"),
+        Beauty("Beauty / Skin"),
         Face("Face"),
         Eyes("Eyes"),
         ContactLens("Contact Lens"),
@@ -68,6 +68,7 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         Makeup("Makeup"),
         Filters("Filters"),
         MagicAr("Magic / AR"),
+        Gifts("Gifts"),
         Hair("Hair"),
         FullLook("Full Look"),
         Outfit("Outfit"),
@@ -119,12 +120,8 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         override fun run() {
             val snap = session?.performanceSnapshot()
             if (snap != null) {
-                if (developerMode || qaVisible) {
-                    fpsChip.visibility = View.VISIBLE
-                    fpsChip.text = "%.0f FPS".format(snap.fps)
-                } else {
-                    fpsChip.visibility = View.GONE
-                }
+                fpsChip.visibility = View.VISIBLE
+                fpsChip.text = "%.0f FPS".format(snap.fps)
                 if (qaVisible) {
                     val track = session?.vision?.latest()
                     qaPanel.text = buildString {
@@ -158,6 +155,8 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         textureView = TextureView(this).apply {
             layoutParams = CoordinatorLayout.LayoutParams(MATCH, MATCH)
             surfaceTextureListener = this@DeviceStudioActivity
+            isOpaque = false
+            elevation = 0f
         }
         root.addView(textureView)
 
@@ -174,7 +173,7 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
             setBackgroundColor(COL_CHIP)
             setPadding(dp(10), dp(6), dp(10), dp(6))
             textSize = 12f
-            visibility = if (developerMode) View.VISIBLE else View.GONE
+            visibility = View.VISIBLE
             setOnLongClickListener {
                 qaVisible = !qaVisible
                 qaPanel.visibility = if (qaVisible) View.VISIBLE else View.GONE
@@ -201,6 +200,7 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         val topStack = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = CoordinatorLayout.LayoutParams(MATCH, WRAP)
+            elevation = dp(12).toFloat()
             addView(topBar)
             addView(statusChip)
             addView(qaPanel)
@@ -208,29 +208,40 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         root.addView(topStack)
 
         sheet = buildSheet()
-        val sheetLp = CoordinatorLayout.LayoutParams(MATCH, (resources.displayMetrics.heightPixels * 0.62f).toInt()).apply {
+        val sheetLp = CoordinatorLayout.LayoutParams(MATCH, MATCH).apply {
             behavior = BottomSheetBehavior<LinearLayout>().also { sheetBehavior = it }
             gravity = Gravity.BOTTOM
         }
         sheet.layoutParams = sheetLp
+        sheet.elevation = dp(24).toFloat()
+        sheet.translationZ = dp(24).toFloat()
+        sheet.isClickable = true
+        sheet.isFocusable = true
         root.addView(sheet)
-        sheetBehavior.peekHeight = dp(108)
         sheetBehavior.isHideable = false
         sheetBehavior.skipCollapsed = false
-        sheetBehavior.isFitToContents = true
+        sheetBehavior.isFitToContents = false
+        sheetBehavior.halfExpandedRatio = 0.42f
+        sheetBehavior.isDraggable = true
+        sheetBehavior.peekHeight = dp(168)
+        sheetBehavior.expandedOffset = dp(72)
         sheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
 
         setContentView(root)
 
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+            )
             statusInsetPx = bars.top
             navInsetPx = bars.bottom
             topStack.setPadding(bars.left, bars.top, bars.right, 0)
-            sheet.setPadding(bars.left, dp(8), bars.right, bars.bottom + dp(8))
-            sheetBehavior.peekHeight = dp(108) + bars.bottom
+            sheet.setPadding(bars.left, dp(8), bars.right, bars.bottom + dp(12))
+            sheetBehavior.expandedOffset = bars.top + dp(8)
+            sheetBehavior.peekHeight = dp(168) + bars.bottom
             insets
         }
+        ViewCompat.requestApplyInsets(root)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -255,7 +266,8 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(COL_PANEL)
-            elevation = dp(8).toFloat()
+            elevation = dp(24).toFloat()
+            isClickable = true
         }
         val handle = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(dp(40), dp(4)).apply {
@@ -644,9 +656,11 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                     target.setAREffect(id, v)
                 }
                 action("Clear AR") { target.clearAREffect(); bindCategory(target) }
-                heading("Gifts")
-                target.giftCatalog().take(20).forEach { gift ->
-                    action(gift.displayName) {
+            }
+            StudioCategory.Gifts -> {
+                note("GiftFX plays on the live camera graph. Play does not rebind CameraX.")
+                target.giftCatalog().forEach { gift ->
+                    action("${gift.displayName} · ${gift.category.name}") {
                         selectedGiftId = gift.giftId
                         when (val r = target.playGift(gift.giftId)) {
                             is AuraFxResult.Ok -> setStatus("Gift ${gift.displayName}")
@@ -654,7 +668,13 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                         }
                     }
                 }
-                action("Stop gifts") { target.stopAllGifts() }
+                action("Replay last") {
+                    when (val r = target.replayGift()) {
+                        is AuraFxResult.Ok -> setStatus("Gift replay")
+                        is AuraFxResult.Err -> setStatus(r.error.message, error = true)
+                    }
+                }
+                action("Stop gifts") { target.stopAllGifts(); setStatus("Gifts stopped") }
             }
             StudioCategory.Hair -> {
                 target.hairCatalog().forEach { style ->
