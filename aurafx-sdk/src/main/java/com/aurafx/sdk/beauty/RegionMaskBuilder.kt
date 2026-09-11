@@ -47,6 +47,20 @@ object RegionMaskBuilder {
         return pixels
     }
 
+    /** Whole-frame skin channel so beauty color sliders still hit the GPU without a face yet. */
+    fun buildFullFrameSkin(): ByteArray {
+        val pixels = ByteArray(SIZE * SIZE * 4)
+        var i = 0
+        while (i < pixels.size) {
+            pixels[i] = 0xE0.toByte()
+            pixels[i + 1] = 0
+            pixels[i + 2] = 0
+            pixels[i + 3] = 0
+            i += 4
+        }
+        return pixels
+    }
+
     fun channelSum(pixels: ByteArray, channel: Int): Int {
         var sum = 0
         var i = channel

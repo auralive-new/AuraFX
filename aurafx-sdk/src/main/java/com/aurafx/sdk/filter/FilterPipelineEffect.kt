@@ -11,6 +11,7 @@ import com.aurafx.sdk.internal.AuraFxLog
 import com.aurafx.sdk.internal.render.GlFramebuffer
 import com.aurafx.sdk.internal.render.ShaderProgram
 import com.aurafx.sdk.internal.render.checkGl
+import com.aurafx.sdk.internal.render.checkGlSoft
 import com.aurafx.sdk.vision.TrackingData
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -94,6 +95,7 @@ class FilterPipelineEffect(
             return
         }
         val def = snap.definition ?: return
+        AuraFxLog.debugThrottled("filter apply ${def.id} intensity=${snap.intensity}")
         ensureTargets(frame.width, frame.height)
         val incoming = frame.processedTextureId
         if (incoming != 0 && !frame.processedIsOes) {
@@ -156,8 +158,9 @@ class FilterPipelineEffect(
         GLES30.glUniform1f(program.loc("uMirror"), mirror)
         GLES30.glBindVertexArray(quadVao)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        GLES30.glBindVertexArray(0)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-        checkGl("filter resolve")
+        checkGlSoft("filter resolve")
     }
 
     private fun copyPrevious(tex: Int) {
@@ -169,8 +172,9 @@ class FilterPipelineEffect(
         GLES30.glUniform1i(program.loc("uTexture"), 0)
         GLES30.glBindVertexArray(quadVao)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        GLES30.glBindVertexArray(0)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-        checkGl("filter copy2d")
+        checkGlSoft("filter copy2d")
     }
 
     private fun uploadMask(tracking: TrackingData) {
@@ -205,7 +209,9 @@ class FilterPipelineEffect(
             lut.size, lut.size, lut.size, 0,
             GLES30.GL_RGB, GLES30.GL_UNSIGNED_BYTE, buf,
         )
-        checkGl("filter lut upload")
+        GLES30.glBindVertexArray(0)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        checkGlSoft("filter lut upload")
     }
 
     private fun runGrade(frame: FrameContext, snap: FilterSnapshot, def: FilterDefinition) {
@@ -254,8 +260,9 @@ class FilterPipelineEffect(
         GLES30.glUniform1i(program.loc("uSceneMode"), def.sceneMode)
         GLES30.glBindVertexArray(quadVao)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        GLES30.glBindVertexArray(0)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-        checkGl("filter grade")
+        checkGlSoft("filter grade")
     }
 
     companion object {

@@ -144,6 +144,12 @@ class RegionMaskBuilderTest {
     }
 
     @Test
+    fun fullFrameSkinMaskIsNotEmpty() {
+        val px = RegionMaskBuilder.buildFullFrameSkin()
+        assertThat(RegionMaskBuilder.channelSum(px, 0)).isGreaterThan(0)
+    }
+
+    @Test
     fun pointInPolygonMatchesSquare() {
         val xs = floatArrayOf(0f, 1f, 1f, 0f)
         val ys = floatArrayOf(0f, 0f, 1f, 1f)

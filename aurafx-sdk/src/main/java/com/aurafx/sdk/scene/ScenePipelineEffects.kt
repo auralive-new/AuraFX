@@ -156,7 +156,13 @@ class BackgroundPipelineEffect(private val rig: BackgroundRig) : Effect {
         if (snap.isIdentity()) return
         val def = snap.id?.let { BackgroundCatalog.require(it) } ?: return
         val mask = tracking.segmentation
-        if (mask == null || !mask.inBounds() || mask.personCoverage < 0.008f) return
+        if (mask == null || !mask.inBounds() || mask.personCoverage < 0.001f) {
+            AuraFxLog.debugThrottled(
+                "background skip: no person mask coverage=${mask?.personCoverage} " +
+                    "segTex=${frame.segmentationTextureId} provider=${tracking.visionProvider}",
+            )
+            return
+        }
         if (frame.segmentationTextureId == 0) return
         ensure(frame.width, frame.height)
         resolveOrCopy(frame, resolve, copy2d, resolved, quad.vao)

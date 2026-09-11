@@ -96,10 +96,27 @@ class BeautyPipelineEffect(
         val landmarks = tracking.landmarks
         if (snap.isIdentity()) return
         if (landmarks == null) {
+            if (snap.skinIdentity()) {
+                AuraFxLog.debugThrottled(
+                    "beauty skip: landmarks=null status=${tracking.status} faces=${tracking.faces.size} " +
+                        "provider=${tracking.visionProvider}",
+                )
+                return
+            }
             AuraFxLog.debugThrottled(
-                "beauty skip: landmarks=null status=${tracking.status} faces=${tracking.faces.size} " +
-                    "provider=${tracking.visionProvider}",
+                "beauty global skin (no face yet) provider=${tracking.visionProvider} status=${tracking.status}",
             )
+            ensureTargets(frame.width, frame.height)
+            val incoming = frame.processedTextureId
+            if (incoming != 0 && !frame.processedIsOes) {
+                copyPrevious(incoming)
+            } else {
+                resolveOes(frame)
+            }
+            uploadFullFrameSkinMask()
+            runSkin(frame, snap)
+            frame.processedTextureId = beautified.tex
+            frame.processedIsOes = false
             return
         }
         ensureTargets(frame.width, frame.height)
@@ -183,6 +200,20 @@ class BeautyPipelineEffect(
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         checkGl("beauty copy2d")
+    }
+
+    private fun uploadFullFrameSkinMask() {
+        val pixels = RegionMaskBuilder.buildFullFrameSkin()
+        val buf = maskBuffer ?: return
+        buf.rewind()
+        buf.put(pixels)
+        buf.rewind()
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, maskTex)
+        GLES30.glTexImage2D(
+            GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA,
+            RegionMaskBuilder.SIZE, RegionMaskBuilder.SIZE, 0,
+            GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buf,
+        )
     }
 
     private fun uploadMask(landmarks: FaceLandmarks) {

@@ -374,7 +374,10 @@ internal class AuraFxRenderThread(
             if (firstFrameNotified.compareAndSet(false, true)) {
                 AuraFxLog.i(
                     "first OES frame ts=$timestampNs facing=$facing " +
-                        "viewport=${viewportW}x${viewportH} mirror=$mirror",
+                        "viewport=${viewportW}x${viewportH} mirror=$mirror " +
+                        "processedTex=${frameContext.processedTextureId} " +
+                        "track=${tracking.status} lm=${tracking.landmarks?.count ?: 0} " +
+                        "provider=${tracking.visionProvider}",
                 )
                 mainPoster { listener?.onFirstFrame(timestampNs) }
             }

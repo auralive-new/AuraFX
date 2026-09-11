@@ -152,10 +152,12 @@ internal class AuraFxCameraController(
             )
             .build()
         val attempts = listOf(
-            BindAttempt(withAnalysis = analyzer != null, withFps = true),
-            BindAttempt(withAnalysis = analyzer != null, withFps = false),
-            BindAttempt(withAnalysis = false, withFps = true),
-            BindAttempt(withAnalysis = false, withFps = false),
+            BindAttempt(withAnalysis = analyzer != null, withFps = false, rgba = false),
+            BindAttempt(withAnalysis = analyzer != null, withFps = true, rgba = false),
+            BindAttempt(withAnalysis = analyzer != null, withFps = false, rgba = true),
+            BindAttempt(withAnalysis = analyzer != null, withFps = true, rgba = true),
+            BindAttempt(withAnalysis = false, withFps = true, rgba = false),
+            BindAttempt(withAnalysis = false, withFps = false, rgba = false),
         )
         var lastError: Throwable? = null
         for (attempt in attempts) {
@@ -165,12 +167,12 @@ internal class AuraFxCameraController(
                 preview.setSurfaceProvider { request ->
                     providePreviewSurface(request, previewSurface)
                 }
-                val analysis = if (attempt.withAnalysis) buildAnalysis(rotation) else null
+                val analysis = if (attempt.withAnalysis) buildAnalysis(rotation, attempt.rgba) else null
                 if (analysis != null) {
                     cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
                     AuraFxLog.i(
                         "CameraX bound facing=$facing useCases=Preview+ImageAnalysis " +
-                            "fps=${attempt.withFps}",
+                            "fps=${attempt.withFps} rgba=${attempt.rgba}",
                     )
                 } else {
                     cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview)
@@ -191,7 +193,7 @@ internal class AuraFxCameraController(
         throw lastError ?: IllegalStateException("CameraX bind failed")
     }
 
-    private data class BindAttempt(val withAnalysis: Boolean, val withFps: Boolean)
+    private data class BindAttempt(val withAnalysis: Boolean, val withFps: Boolean, val rgba: Boolean)
 
     private fun buildPreview(
         resolutionSelector: ResolutionSelector,
@@ -209,23 +211,26 @@ internal class AuraFxCameraController(
         return builder.build()
     }
 
-    private fun buildAnalysis(rotation: Int): ImageAnalysis? {
+    private fun buildAnalysis(rotation: Int, rgba: Boolean): ImageAnalysis? {
         val boundAnalyzer = analyzer ?: return null
         val analysisSelector = ResolutionSelector.Builder()
             .setResolutionStrategy(
                 ResolutionStrategy(
-                    Size(360, 640),
+                    Size(480, 640),
                     ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
                 ),
             )
             .build()
-        return ImageAnalysis.Builder()
+        val builder = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .setResolutionSelector(analysisSelector)
             .setTargetRotation(rotation)
-            .build()
-            .also { it.setAnalyzer(visionExecutor, boundAnalyzer) }
+        if (rgba) {
+            builder.setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+        } else {
+            builder.setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+        }
+        return builder.build().also { it.setAnalyzer(visionExecutor, boundAnalyzer) }
     }
 
     private fun providePreviewSurface(request: SurfaceRequest, previewSurface: Surface) {

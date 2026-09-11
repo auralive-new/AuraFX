@@ -18,6 +18,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    androidResources {
+        noCompress += listOf("tflite", "task")
+    }
+
     kotlinOptions {
         jvmTarget = "17"
     }

@@ -122,16 +122,18 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
         override fun run() {
             val snap = session?.performanceSnapshot()
             if (snap != null) {
+                val track = session?.vision?.latest()
+                val face = if (track?.landmarks != null) "face" else "no face"
                 fpsChip.visibility = View.VISIBLE
-                fpsChip.text = "%.0f FPS".format(snap.fps)
+                fpsChip.text = "%.0f FPS · %s".format(snap.fps, face)
                 if (qaVisible) {
-                    val track = session?.vision?.latest()
                     qaPanel.text = buildString {
                         appendLine("FPS ${"%.1f".format(snap.fps)}   frame ${"%.2f".format(snap.frameProcessTimeMs)} ms")
                         appendLine("dropped ${snap.droppedFrames}   presented ${snap.presentedFrames}")
                         appendLine("camera ${snap.cameraWidth}x${snap.cameraHeight}   ${snap.cameraFacing}")
                         appendLine("GPU ${snap.gpuRenderer ?: "n/a"}")
                         appendLine("java heap ${snap.javaHeapUsedBytes}   native ${snap.nativeHeapAllocatedBytes ?: "n/a"}")
+                        appendLine(session?.visionDiagnostics() ?: "")
                         appendLine("tracking ${snap.trackingStatus} faces=${snap.trackedFaces}  ${track?.visionProvider ?: ""}")
                         appendLine("effect load ${snap.lastEffectLoadMs?.let { "%.1f ms".format(it) } ?: "n/a"}")
                         appendLine("camera bound=${snap.cameraBound}   sdk=${snap.sdkState}")
@@ -582,6 +584,7 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                 action("Reset beauty") { target.resetBeauty(); bindCategory(target) }
             }
             StudioCategory.Face -> {
+                note("V-face and cheeks warp the live mesh. Hold the phone so the FPS chip says face.")
                 slider("V-face", { target.faceShapeParameters().vFace }) { v -> target.faceShape { vFace = v } }
                 slider("Cheek thin", { target.faceShapeParameters().cheekThin }) { v -> target.faceShape { cheekThin = v } }
                 slider("Cheek small", { target.faceShapeParameters().cheekSmall }) { v -> target.faceShape { cheekSmall = v } }
@@ -638,9 +641,22 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                 action("Reset body") { target.resetBody(); bindCategory(target) }
             }
             StudioCategory.Makeup -> {
-                action("Classic") { target.applyMakeupPreset(MakeupPreset.Classic); bindCategory(target) }
-                action("Bright") { target.applyMakeupPreset(MakeupPreset.Bright); bindCategory(target) }
-                action("Extravagant") { target.applyMakeupPreset(MakeupPreset.Extravagant); bindCategory(target) }
+                note("Live lipstick, blush, and foundation on your face — same GPU path as the camera, not stickers.")
+                action("Classic") {
+                    target.applyMakeupPreset(MakeupPreset.Classic)
+                    bindCategory(target)
+                    setStatus("Makeup Classic · ${target.visionDiagnostics()}")
+                }
+                action("Bright") {
+                    target.applyMakeupPreset(MakeupPreset.Bright)
+                    bindCategory(target)
+                    setStatus("Makeup Bright · ${target.visionDiagnostics()}")
+                }
+                action("Extravagant") {
+                    target.applyMakeupPreset(MakeupPreset.Extravagant)
+                    bindCategory(target)
+                    setStatus("Makeup Extravagant · ${target.visionDiagnostics()}")
+                }
                 val m = target.makeupParameters()
                 note("Lip ${m.lipstick.look} · Blush ${m.blush.style} · Shadow ${m.eyeshadow.style}")
                 slider("Lipstick", { target.makeupParameters().lipstick.intensity }) { v ->
@@ -657,8 +673,9 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
             StudioCategory.Filters -> {
                 target.filterCatalog().forEach { def ->
                     action(def.displayName) {
-                        target.setFilter(def.id, 0.5f)
+                        target.setFilter(def.id, 0.88f)
                         bindCategory(target)
+                        setStatus("Filter ${def.displayName} · ${target.visionDiagnostics()}")
                     }
                 }
                 note("Active: ${target.filterParameters().id ?: "none"}")
@@ -669,7 +686,7 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                 action("Clear filter") { target.clearFilter(); bindCategory(target) }
             }
             StudioCategory.MagicAr -> {
-                note("GPU AR / masks on the live pipeline. Gifts play on the same camera graph.")
+                note("Face AR: glasses, hats, glow — anchored to your face on the live camera.")
                 MaskTray.entries.forEach { tray ->
                     action(tray.trayLabel()) {
                         maskTray = tray
@@ -679,8 +696,9 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                 val inTray = target.arCatalog().filter { it.tray == maskTray }.ifEmpty { target.arCatalog() }
                 inTray.take(24).forEach { item ->
                     action(item.displayName) {
-                        target.setAREffect(item.id, 0.85f)
+                        target.setAREffect(item.id, 0.95f)
                         bindCategory(target)
+                        setStatus("AR ${item.displayName} · ${target.visionDiagnostics()}")
                     }
                 }
                 slider("AR intensity", { target.arParameters().intensity }) { v ->
@@ -732,19 +750,19 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                 action("Classic look") {
                     target.applyMakeupPreset(MakeupPreset.Classic)
                     target.beauty { fineSmooth = 0.35f; whiten = 0.2f }
-                    target.setFilter("natural.true", 0.45f)
+                    target.setFilter("natural.true", 0.7f)
                     bindCategory(target)
                 }
                 action("Bright look") {
                     target.applyMakeupPreset(MakeupPreset.Bright)
                     target.beauty { fineSmooth = 0.4f; toothWhiten = 0.25f }
-                    target.setFilter("glow.pearl", 0.5f)
+                    target.setFilter("glow.pearl", 0.75f)
                     bindCategory(target)
                 }
                 action("Extravagant look") {
                     target.applyMakeupPreset(MakeupPreset.Extravagant)
                     target.faceShape { vFace = 0.2f; eyeEnlarge = 0.15f }
-                    target.setFilter("warm.golden", 0.55f)
+                    target.setFilter("warm.golden", 0.8f)
                     bindCategory(target)
                 }
                 action("Clear look") {
@@ -758,6 +776,7 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                 comingSoon("Outfit")
             }
             StudioCategory.Background -> {
+                note("Replaces the scene behind you (selfie segmentation). Step back so your body is in frame.")
                 BackgroundTray.entries.forEach { tray ->
                     action(tray.trayLabel()) {
                         bgTray = tray
@@ -767,8 +786,9 @@ class DeviceStudioActivity : AppCompatActivity(), TextureView.SurfaceTextureList
                 val inTray = target.backgroundCatalog().filter { it.tray == bgTray }.ifEmpty { target.backgroundCatalog() }
                 inTray.take(24).forEach { item ->
                     action(item.displayName) {
-                        target.background { enabled = true; id = item.id; intensity = 0.75f }
+                        target.background { enabled = true; id = item.id; intensity = 1f }
                         bindCategory(target)
+                        setStatus("Background ${item.displayName} · ${target.visionDiagnostics()}")
                     }
                 }
                 slider("Intensity", { target.backgroundParameters().intensity }) { v ->

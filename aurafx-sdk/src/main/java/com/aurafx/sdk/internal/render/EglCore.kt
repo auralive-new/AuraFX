@@ -113,3 +113,12 @@ internal fun checkGl(op: String) {
         throw EglException("$op: glError 0x${Integer.toHexString(err)}")
     }
 }
+
+/** Drain GL errors without aborting the camera frame. */
+internal fun checkGlSoft(op: String) {
+    var err = GLES30.glGetError()
+    while (err != GLES30.GL_NO_ERROR) {
+        com.aurafx.sdk.internal.AuraFxLog.w("$op: glError 0x${Integer.toHexString(err)}")
+        err = GLES30.glGetError()
+    }
+}

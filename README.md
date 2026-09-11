@@ -56,7 +56,9 @@ Photo and video use the **final GPU frame**, not a raw camera dump.
 
 ## Pipeline
 
-CameraX (single bind) → vision → background → makeup → beauty → hair (color + grooms) → body → lighting → filter → AR → GiftFX → preview / encoder.
+CameraX (single bind, Preview + ImageAnalysis) → MediaPipe face / selfie / pose → GPU resolve → background → makeup → beauty → hair → body → lighting → filter → AR → GiftFX → preview / encoder.
+
+MediaPipe models ship in `aurafx-sdk/src/main/assets/models/` (`face_landmarker.task`, `selfie_multiclass_256x256.tflite`, `pose_landmarker_lite.task`). Face makeup, face shape, AR, and background replacement need a face/body in frame — the FPS chip shows **face** when tracking is live. Color filters grade the camera even without a face.
 
 GiftFX is a real-time GPU overlay engine (no sticker PNGs, no prerecorded gift videos). Studio’s **Gifts** category lists **50** catalog gifts on the live camera preview. Play/stop does **not** rebind the camera. AuraLive / Step 8 is not started.
 

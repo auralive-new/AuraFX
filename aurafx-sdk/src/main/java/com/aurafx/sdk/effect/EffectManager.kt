@@ -1,5 +1,6 @@
 package com.aurafx.sdk.effect
 
+import com.aurafx.sdk.internal.AuraFxLog
 import com.aurafx.sdk.performance.PerformanceManager
 import com.aurafx.sdk.vision.TrackingData
 import java.util.concurrent.CopyOnWriteArrayList
@@ -41,7 +42,11 @@ class EffectManager(
         attachedContext = context
         for (effect in effects) {
             val started = System.nanoTime()
-            effect.onAttach(context)
+            try {
+                effect.onAttach(context)
+            } catch (t: Throwable) {
+                AuraFxLog.e("effect attach failed ${effect.id}", t)
+            }
             performance.markEffectLoadNs(System.nanoTime() - started)
         }
     }
@@ -55,7 +60,11 @@ class EffectManager(
 
     internal fun process(frame: FrameContext, tracking: TrackingData) {
         for (effect in effects) {
-            effect.process(frame, tracking)
+            try {
+                effect.process(frame, tracking)
+            } catch (t: Throwable) {
+                AuraFxLog.e("effect process failed ${effect.id}", t)
+            }
         }
     }
 }

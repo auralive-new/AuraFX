@@ -44,6 +44,7 @@ import com.aurafx.sdk.beauty.BeautyPipelineEffect
 import com.aurafx.sdk.beauty.BeautyRig
 import com.aurafx.sdk.beauty.FaceShapeEngine
 import com.aurafx.sdk.beauty.SkinEngine
+import com.aurafx.sdk.effect.CameraResolveEffect
 import com.aurafx.sdk.effect.Effect
 import com.aurafx.sdk.effect.EffectManager
 import com.aurafx.sdk.makeup.MakeupEngine
@@ -170,6 +171,7 @@ class AuraFxSession internal constructor(
     private var sceneAnalyzer: MediaPipeSceneAnalyzer? = null
 
     init {
+        effects.register(CameraResolveEffect())
         effects.register(SegmentationUploadEffect())
         effects.register(BackgroundPipelineEffect(backgroundRig))
         effects.register(MakeupPipelineEffect(makeupRig))
@@ -566,6 +568,13 @@ class AuraFxSession internal constructor(
     fun lightingParameters(): LightingParameters = lightingEngine.snapshot()
 
     fun filterParameters(): FilterParameters = filterEngine.parameters()
+
+    fun visionDiagnostics(): String {
+        val t = vision.latest()
+        val face = if (t.landmarks != null) "face ${t.landmarks.count}pts" else "no face"
+        val seg = t.segmentation?.let { "person ${"%.0f".format(it.personCoverage * 100f)}%" } ?: "no mask"
+        return "$face · $seg · ${t.visionProvider.ifBlank { t.status.name.lowercase() }}"
+    }
 
     fun filterCatalog(): List<FilterDefinition> = filterEngine.catalog()
 

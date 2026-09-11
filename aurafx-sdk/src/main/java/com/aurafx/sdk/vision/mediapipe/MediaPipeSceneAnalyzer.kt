@@ -45,6 +45,7 @@ class MediaPipeSceneAnalyzer(
     private var smootherPrev: FaceLandmarks? = null
     private var reusable: Bitmap? = null
     private var prevPacked: ByteArray? = null
+    private val videoClock = MediaPipeVideoClock()
 
     @Volatile var loadError: String? = null
         private set
@@ -63,9 +64,9 @@ class MediaPipeSceneAnalyzer(
                     .setBaseOptions(BaseOptions.builder().setModelAssetPath(FACE_MODEL).build())
                     .setRunningMode(RunningMode.VIDEO)
                     .setNumFaces(1)
-                    .setMinFaceDetectionConfidence(0.5f)
-                    .setMinFacePresenceConfidence(0.5f)
-                    .setMinTrackingConfidence(0.5f)
+                    .setMinFaceDetectionConfidence(0.3f)
+                    .setMinFacePresenceConfidence(0.3f)
+                    .setMinTrackingConfidence(0.3f)
                     .setOutputFaceBlendshapes(false)
                     .setOutputFacialTransformationMatrixes(false)
                     .build(),
@@ -97,9 +98,9 @@ class MediaPipeSceneAnalyzer(
                     .setBaseOptions(BaseOptions.builder().setModelAssetPath(POSE_MODEL).build())
                     .setRunningMode(RunningMode.VIDEO)
                     .setNumPoses(1)
-                    .setMinPoseDetectionConfidence(0.5f)
-                    .setMinPosePresenceConfidence(0.5f)
-                    .setMinTrackingConfidence(0.5f)
+                    .setMinPoseDetectionConfidence(0.3f)
+                    .setMinPosePresenceConfidence(0.3f)
+                    .setMinTrackingConfidence(0.3f)
                     .build(),
             )
             poseReady = true
@@ -108,6 +109,10 @@ class MediaPipeSceneAnalyzer(
             AuraFxLog.e("PoseLandmarker failed", t)
         }
         ready.set(faceReady || segmenterReady || poseReady)
+        AuraFxLog.i(
+            "MediaPipe scene face=$faceReady seg=$segmenterReady pose=$poseReady " +
+                "loadError=${loadError ?: "none"}",
+        )
         if (!ready.get()) {
             onResult(TrackingData.unavailable(0L).copy(visionProvider = "mediapipe-scene:load-failed"))
         }
@@ -124,7 +129,7 @@ class MediaPipeSceneAnalyzer(
                 reusable = bitmap
             }
             val mpImage = BitmapImageBuilder(bitmap).build()
-            val tsMs = image.imageInfo.timestamp / 1_000_000L
+            val tsMs = videoClock.nextMs(image.imageInfo.timestamp)
             val mirror = mirrorX()
             val facePart = runFace(mpImage, tsMs, image.imageInfo.timestamp, mirror)
             val seg = runSeg(mpImage, tsMs, mirror)
